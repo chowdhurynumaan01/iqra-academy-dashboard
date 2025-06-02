@@ -112,6 +112,7 @@
         <header class="text-center mb-12 fade-in">
             <h1 class="text-5xl font-extrabold text-gray-900 mb-4">IQRA Academy of Michigan Student Data Insights</h1>
             <p class="text-xl text-gray-600">Visualizing key student demographics and academic performance metrics.</p>
+            <div class="w-24 h-1 bg-indigo-500 mx-auto mt-4 rounded-full"></div>
         </header>
 
         <section class="bg-white p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-4 fade-in no-print">
@@ -137,71 +138,236 @@
             </button>
         </section>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total Students</p>
-                    <p id="totalStudents" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 fade-in">
+            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Total Students</p>
+                        <h3 id="totalStudents" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
                 </div>
-                <i class="fas fa-users text-purple-600 text-5xl opacity-20"></i>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total Teachers</p>
-                    <p id="totalTeachers" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                        <i class="fas fa-male text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Male Students</p>
+                        <h3 id="maleStudents" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
                 </div>
-                <i class="fas fa-chalkboard-teacher text-indigo-600 text-5xl opacity-20"></i>
             </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Irregular Students</p>
-                    <p id="irregularStudents" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-pink-100 text-pink-600 mr-4">
+                        <i class="fas fa-female text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Female Students</p>
+                        <h3 id="femaleStudents" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
                 </div>
-                <i class="fas fa-exclamation-triangle text-red-600 text-5xl opacity-20"></i>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                        <i class="fas fa-calendar-alt text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-gray-500">Weekend Program</p>
+                        <h3 id="weekendProgram" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <section class="grid grid-cols-1 lg:grid-cols-2 xl:col-span-3 gap-6 mb-12">
-            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Level Distribution</h2>
-                <div class="h-80">
-                    <canvas id="levelChart"></canvas>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Teacher Distribution</h2>
-                <div class="h-80">
-                    <canvas id="teacherChart"></canvas>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Department Distribution</h2>
-                <div class="h-80">
-                    <canvas id="departmentChart"></canvas>
-                </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Gender Distribution</h2>
-                <div class="h-80">
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in lg:col-span-1">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-venus-mars text-indigo-500 mr-2"></i>
+                    Gender Distribution
+                </h2>
+                <div class="h-64">
                     <canvas id="genderChart"></canvas>
                 </div>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Regular vs. Irregular Students</h2>
-                <div class="h-80">
-                    <canvas id="regularIrregularChart"></canvas>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p id="genderInsight">Loading insights...</p>
                 </div>
             </div>
-            <div class="lg:col-span-2 xl:col-span-3 bg-white p-6 rounded-xl shadow-lg fade-in">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Level by Gender</h2>
-                <div class="h-96">
-                    <canvas id="levelGenderChart"></canvas>
+
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in lg:col-span-1">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-calendar-week text-blue-500 mr-2"></i>
+                    Program Distribution
+                </h2>
+                <div class="h-64">
+                    <canvas id="programChart"></canvas>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p id="programInsight">Loading insights...</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in lg:col-span-1">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-layer-group text-green-500 mr-2"></i>
+                    Class Level Distribution
+                </h2>
+                <div class="h-64">
+                    <canvas id="levelChart"></canvas>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p id="levelInsight">Loading insights...</p>
                 </div>
             </div>
         </section>
 
-        <footer class="text-center text-gray-500 text-sm mt-8">
+        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-users-between-lines text-purple-500 mr-2"></i>
+                Family Groupings Analysis
+            </h2>
+            <div class="overflow-x-auto scrollbar-hide">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Children Count</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender Mix</th>
+                        </tr>
+                    </thead>
+                    <tbody id="familyGroupingsTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="4" class="text-center py-4 text-gray-500">No family data available.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-sm text-gray-600">
+                <p id="familyInsight">Loading insights...</p>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-building text-orange-500 mr-2"></i>
+                    Department Distribution
+                </h2>
+                <div class="h-64">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p id="departmentInsight">Loading insights...</p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-chart-bar text-teal-500 mr-2"></i>
+                    Level Distribution by Gender
+                </h2>
+                <div class="h-64">
+                    <canvas id="levelGenderChart"></canvas>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p id="levelGenderInsight">Loading insights...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-user-friends text-red-500 mr-2"></i>
+                Top Parents by Number of Children Enrolled
+            </h2>
+            <div id="topParentsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 col-span-full">No top parent data available.</div>
+            </div>
+            <div class="mt-4 text-sm text-gray-600">
+                <p id="topParentsInsight">Loading insights...</p>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-table text-amber-500 mr-2"></i>
+                Student Data Overview
+            </h2>
+            <div class="overflow-x-auto scrollbar-hide">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentDataTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="6" class="text-center py-4 text-gray-500">No student data available.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-between items-center no-print">
+                <span id="paginationInfo" class="text-sm text-gray-600">Showing 0 to 0 of 0 entries</span>
+                <div class="flex space-x-2">
+                    <button id="prevPageButton" class="px-3 py-1 bg-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                    <div id="paginationButtons" class="flex space-x-2">
+                        </div>
+                    <button id="nextPageButton" class="px-3 py-1 bg-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                Key Insights from the Data
+            </h2>
+            <div id="keyInsightsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                        <i class="fas fa-balance-scale text-blue-500 mr-2"></i>
+                        Gender Balance
+                    </h3>
+                    <p id="insightGender" class="text-sm text-gray-700">Loading insights...</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-green-800 mb-2 flex items-center">
+                        <i class="fas fa-home text-green-500 mr-2"></i>
+                        Family Engagement
+                    </h3>
+                    <p id="insightFamily" class="text-sm text-gray-700">Loading insights...</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-purple-800 mb-2 flex items-center">
+                        <i class="fas fa-chalkboard-teacher text-purple-500 mr-2"></i>
+                        Program Popularity
+                    </h3>
+                    <p id="insightProgram" class="text-sm text-gray-700">Loading insights...</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4">
+                    <h3 class="font-semibold text-orange-800 mb-2 flex items-center">
+                        <i class="fas fa-user-graduate text-orange-500 mr-2"></i>
+                        Level Distribution
+                    </h3>
+                    <p id="insightLevel" class="text-sm text-gray-700">Loading insights...</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-6 text-gray-500 text-sm">
             <p>&copy; 2023 IQRA Academy of Michigan. All rights reserved.</p>
+            <p class="mt-1">Data last updated: <span id="lastUpdated">N/A</span></p>
         </footer>
     </div>
 
@@ -232,7 +398,6 @@
           measurementId: "G-HH530TRWPF"
         };
 
-
         // Firebase Initialization
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -247,6 +412,11 @@
         // DOM Elements for messages and loading
         const appMessageDiv = document.getElementById('appMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
+
+        // Pagination variables
+        const rowsPerPage = 10;
+        let currentPage = 1;
+        let totalPages = 1;
 
         /**
          * Displays a message to the user.
@@ -292,9 +462,10 @@
 `;
 
         let studentsData = []; // Global variable to hold parsed student data
+        let familyGroupingsData = []; // Global variable for family data
 
         /**
-         * Parses CSV student data to extract relevant fields (Level, Teacher, Gender, Name, Parents Name, Contact Info, RN, Department).
+         * Parses CSV student data to extract relevant fields.
          * This function expects the first line of the rawData to be a header row.
          * @param {string} rawData - The raw CSV text data containing student information.
          * @returns {Array<Object>} An array of student objects with parsed fields.
@@ -302,7 +473,7 @@
         function parseStudentData(rawData) {
             const lines = rawData.trim().split('\n');
             if (lines.length === 0) {
-                console.error("No data found in rawData.");
+                console.warn("No data found in rawData.");
                 return [];
             }
 
@@ -313,22 +484,18 @@
             // Define expected headers for validation and mapping
             const expectedHeaders = ['LEVEL', 'TEACHER', 'GENDER', 'NAME', 'PARENTS NAME', 'CONTACT INFO', 'RN', 'Department'];
 
-            // Validate if all expected headers are present
             const missingHeaders = expectedHeaders.filter(header => !headers.includes(header));
             if (missingHeaders.length > 0) {
                 console.error(`Missing expected headers: ${missingHeaders.join(', ')}. Please ensure your CSV has these columns.`);
-                // If critical headers are missing, return empty array to prevent chart errors
+                displayMessage(`CSV Error: Missing columns - ${missingHeaders.join(', ')}.`, 'red');
                 return [];
             }
 
             const students = [];
-            // Process data rows starting from the second line
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (line === '') continue; // Skip empty lines
+                if (line === '') continue;
 
-                // Split the line by comma, handling quoted fields
-                // This regex handles commas inside double quotes
                 const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
 
                 if (values.length !== headers.length) {
@@ -340,33 +507,31 @@
                 for (let j = 0; j < headers.length; j++) {
                     const header = headers[j];
                     let value = values[j].trim();
-                    // Remove quotes from quoted fields
                     if (value.startsWith('"') && value.endsWith('"')) {
                         value = value.substring(1, value.length - 1);
                     }
                     student[header] = value;
                 }
 
-                // Normalize department, level, and gender to uppercase for consistent counting
+                // Normalize data for consistency
                 const normalizedDepartment = student['Department'] ? student['Department'].trim().toUpperCase() : '';
                 const normalizedLevel = student.LEVEL ? student.LEVEL.trim().toUpperCase() : '';
                 const normalizedGender = student.GENDER ? student.GENDER.trim().toUpperCase() : '';
+                const normalizedParentName = student['PARENTS NAME'] ? student['PARENTS NAME'].trim().toUpperCase() : '';
 
-
-                // Only push student if it has at least the core data for charts
-                if (normalizedLevel && student.TEACHER && normalizedGender) {
+                if (normalizedLevel && student.TEACHER && normalizedGender && normalizedParentName) {
                     students.push({
-                        level: normalizedLevel, // Use normalized level
+                        level: normalizedLevel,
                         teacher: student.TEACHER,
-                        gender: normalizedGender, // Use normalized gender
-                        name: student.NAME || '', // Optional fields
-                        parentsName: student['PARENTS NAME'] || '',
+                        gender: (normalizedGender === 'BOYS' || normalizedGender === 'MALE') ? 'BOYS' : ((normalizedGender === 'GIRLS' || normalizedGender === 'FEMALE') ? 'GIRLS' : 'UNKNOWN'),
+                        name: student.NAME || '',
+                        parentsName: normalizedParentName,
                         contactInfo: student['CONTACT INFO'] || '',
-                        rn: student.RN || '', // Add RN field
-                        department: (normalizedDepartment !== '0') ? normalizedDepartment : '' // Normalize '0' to empty string
+                        rn: student.RN || '',
+                        department: (normalizedDepartment !== '0') ? normalizedDepartment : ''
                     });
                 } else {
-                    console.warn("Skipping line due to missing core data (LEVEL, TEACHER, or GENDER):", student);
+                    console.warn("Skipping line due to missing core data (LEVEL, TEACHER, GENDER, or PARENTS NAME):", student);
                 }
             }
             console.log("Total Parsed Students:", students.length);
@@ -374,79 +539,98 @@
         }
 
         // Chart instances storage
-        let levelChartInstance, teacherChartInstance, levelGenderChartInstance, departmentChartInstance, genderChartInstance, regularIrregularChartInstance;
+        let genderChartInstance, programChartInstance, levelChartInstance, departmentChartInstance, levelGenderChartInstance;
 
         /**
-         * Renders all charts based on the provided student data.
+         * Renders all charts and updates summary cards based on the provided student data.
          * @param {Array<Object>} studentsData - The array of parsed student objects.
          */
-        function renderCharts(studentsData) {
-            // Calculate data for charts
+        function renderDashboard(studentsData) {
+            // Calculate summary metrics
+            const totalStudentsCount = studentsData.length;
+            let maleStudentsCount = 0;
+            let femaleStudentsCount = 0;
+            let weekendProgramCount = 0;
+            let irregularStudentsCount = 0;
+
             const levelDistribution = {};
-            const teacherDistribution = {};
+            const teacherDistribution = {}; // Not used in new charts, but good to keep for potential future use
             const levelGenderDistribution = {};
             const departmentDistribution = {};
             const genderDistribution = { BOYS: 0, GIRLS: 0 };
-            let regularStudentsCount = 0;
-            let irregularStudentsCount = 0;
+
+            const familyGroups = {}; // For family groupings and top parents
 
             studentsData.forEach(student => {
-                levelDistribution[student.level] = (levelDistribution[student.level] || 0) + 1;
-                teacherDistribution[student.teacher] = (teacherDistribution[student.teacher] || 0) + 1;
-
-                if (!levelGenderDistribution[student.level]) {
-                    levelGenderDistribution[student.level] = { BOYS: 0, GIRLS: 0 };
+                // Gender counts
+                if (student.gender === 'BOYS') {
+                    maleStudentsCount++;
+                    genderDistribution['BOYS']++;
+                } else if (student.gender === 'GIRLS') {
+                    femaleStudentsCount++;
+                    genderDistribution['GIRLS']++;
                 }
-                levelGenderDistribution[student.level][student.gender] = (levelGenderDistribution[student.level][student.gender] || 0) + 1;
 
+                // Program/Department counts
+                if (student.department === 'WEEKEND') {
+                    weekendProgramCount++;
+                }
                 if (student.department && student.department !== '') {
                     departmentDistribution[student.department] = (departmentDistribution[student.department] || 0) + 1;
                 }
 
-                if (student.gender === 'BOYS' || student.gender === 'MALE') {
-                    genderDistribution['BOYS']++;
-                } else if (student.gender === 'GIRLS' || student.gender === 'FEMALE') {
-                    genderDistribution['GIRLS']++;
+                // Level distribution
+                levelDistribution[student.level] = (levelDistribution[student.level] || 0) + 1;
+
+                // Level by Gender
+                if (!levelGenderDistribution[student.level]) {
+                    levelGenderDistribution[student.level] = { BOYS: 0, GIRLS: 0 };
+                }
+                if (student.gender === 'BOYS') {
+                    levelGenderDistribution[student.level]['BOYS']++;
+                } else if (student.gender === 'GIRLS') {
+                    levelGenderDistribution[student.level]['GIRLS']++;
                 }
 
-                const rnValue = student.rn.trim();
-                if (rnValue === '' || rnValue === '0' || rnValue === 'Data unavailable') {
+                // Irregular students
+                const rnValue = String(student.rn).trim(); // Ensure RN is treated as string for comparison
+                if (rnValue === '' || rnValue === '0' || rnValue.toLowerCase() === 'data unavailable') {
                     irregularStudentsCount++;
-                } else {
-                    regularStudentsCount++;
+                }
+
+                // Family Groupings
+                if (student.parentsName && student.parentsName !== '0' && student.parentsName.toLowerCase() !== 'data unavailable') {
+                    if (!familyGroups[student.parentsName]) {
+                        familyGroups[student.parentsName] = {
+                            contactInfo: student.contactInfo,
+                            children: [],
+                            boys: 0,
+                            girls: 0
+                        };
+                    }
+                    familyGroups[student.parentsName].children.push({ name: student.name, gender: student.gender });
+                    if (student.gender === 'BOYS') {
+                        familyGroups[student.parentsName].boys++;
+                    } else if (student.gender === 'GIRLS') {
+                        familyGroups[student.parentsName].girls++;
+                    }
                 }
             });
 
-            // Prepare data for Chart.js
-            const levelLabels = Object.keys(levelDistribution).sort((a, b) => {
-                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
-                return order.indexOf(a) - order.indexOf(b);
-            });
-            const levelData = levelLabels.map(label => levelDistribution[label]);
+            // Convert familyGroups object to an array for easier sorting and display
+            familyGroupingsData = Object.keys(familyGroups).map(parentName => ({
+                parentName: parentName,
+                contactInfo: familyGroups[parentName].contactInfo,
+                childrenCount: familyGroups[parentName].children.length,
+                genderMix: `${familyGroups[parentName].boys} Boys, ${familyGroups[parentName].girls} Girls`
+            })).sort((a, b) => b.childrenCount - a.childrenCount); // Sort by children count descending
 
-            const teacherLabels = Object.keys(teacherDistribution).sort();
-            const teacherData = teacherLabels.map(label => teacherDistribution[label]);
-
-            const levelGenderLabels = Object.keys(levelGenderDistribution).sort((a, b) => {
-                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
-                return order.indexOf(a) - order.indexOf(b);
-            });
-            const levelGenderBoysData = levelGenderLabels.map(label => levelGenderDistribution[label].BOYS || 0);
-            const levelGenderGirlsData = levelGenderLabels.map(label => levelGenderDistribution[label].GIRLS || 0);
-
-            const departmentLabels = Object.keys(departmentDistribution).sort();
-            const departmentData = departmentLabels.map(label => departmentDistribution[label]);
-
-            const genderLabels = ['Boys', 'Girls'];
-            const genderData = [genderDistribution.BOYS, genderDistribution.GIRLS];
-
-            const regularIrregularLabels = ['Regular Students', 'Irregular Students'];
-            const regularIrregularData = [regularStudentsCount, irregularStudentsCount];
-
-            // Update Key Metrics
-            document.getElementById('totalStudents').textContent = studentsData.length;
-            document.getElementById('totalTeachers').textContent = teacherLabels.length;
-            document.getElementById('irregularStudents').textContent = irregularStudentsCount;
+            // Update Summary Cards
+            document.getElementById('totalStudents').textContent = totalStudentsCount;
+            document.getElementById('maleStudents').textContent = maleStudentsCount;
+            document.getElementById('femaleStudents').textContent = femaleStudentsCount;
+            document.getElementById('weekendProgram').textContent = weekendProgramCount;
+            document.getElementById('irregularStudents').textContent = irregularStudentsCount; // This is in the original template, but not in the user's latest snippet, keeping it for now.
 
             // Helper function to create chart options with datalabels
             function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}) {
@@ -482,85 +666,74 @@
             }
 
             // Destroy existing chart instances before creating new ones to prevent memory leaks and conflicts
-            if (levelChartInstance) levelChartInstance.destroy();
-            if (teacherChartInstance) teacherChartInstance.destroy();
-            if (levelGenderChartInstance) levelGenderChartInstance.destroy();
-            if (departmentChartInstance) departmentChartInstance.destroy();
             if (genderChartInstance) genderChartInstance.destroy();
-            if (regularIrregularChartInstance) regularIrregularChartInstance.destroy();
+            if (programChartInstance) programChartInstance.destroy();
+            if (levelChartInstance) levelChartInstance.destroy();
+            if (departmentChartInstance) departmentChartInstance.destroy();
+            if (levelGenderChartInstance) levelGenderChartInstance.destroy();
+
+            // Gender Distribution Chart
+            const genderCtx = document.getElementById('genderChart').getContext('2d');
+            genderChartInstance = new Chart(genderCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Male', 'Female'],
+                    datasets: [{
+                        data: [genderDistribution.BOYS, genderDistribution.GIRLS],
+                        backgroundColor: ['#4F46E5', '#EC4899'],
+                        borderWidth: 0
+                    }]
+                },
+                options: getChartOptions('Gender Distribution', {}, { cutout: '70%' })
+            });
+            document.getElementById('genderInsight').textContent = `The data shows a gender distribution with ${genderDistribution.BOYS} male and ${genderDistribution.GIRLS} female students.`;
+
+
+            // Program (Department) Distribution Chart
+            const departmentLabels = Object.keys(departmentDistribution).sort();
+            const departmentData = departmentLabels.map(label => departmentDistribution[label]);
+            const programCtx = document.getElementById('programChart').getContext('2d');
+            programChartInstance = new Chart(programCtx, {
+                type: 'pie',
+                data: {
+                    labels: departmentLabels,
+                    datasets: [{
+                        data: departmentData,
+                        backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'], // Add more colors if needed
+                        borderWidth: 0
+                    }]
+                },
+                options: getChartOptions('Program Distribution')
+            });
+            const totalProgramStudents = departmentData.reduce((sum, count) => sum + count, 0);
+            const weekendPercentage = totalProgramStudents > 0 ? ((departmentDistribution['WEEKEND'] || 0) / totalProgramStudents * 100).toFixed(1) : '0';
+            document.getElementById('programInsight').textContent = `${weekendPercentage}% of students attend the Weekend program. This suggests the Weekend program is a primary offering.`;
+
 
             // Level Distribution Chart
+            const levelLabels = Object.keys(levelDistribution).sort((a, b) => {
+                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            const levelData = levelLabels.map(label => levelDistribution[label]);
             const levelCtx = document.getElementById('levelChart').getContext('2d');
             levelChartInstance = new Chart(levelCtx, {
-                type: 'pie',
+                type: 'bar',
                 data: {
                     labels: levelLabels,
                     datasets: [{
+                        label: 'Students',
                         data: levelData,
-                        backgroundColor: [
-                            '#6366F1', '#818CF8', '#A5B4FC', '#C7D2FE',
-                            '#E0E7FF', '#F3F4F6', '#A78BFA'
-                        ],
-                        hoverOffset: 4
+                        backgroundColor: '#8B5CF6',
+                        borderWidth: 0
                     }]
                 },
-                options: getChartOptions('Student Level Distribution')
+                options: getChartOptions('Class Level Distribution', { legend: { display: false } }, { y: { beginAtZero: true } })
             });
+            document.getElementById('levelInsight').textContent = `The student distribution across levels is: ${levelLabels.map((l, i) => `${l}: ${levelData[i]}`).join(', ')}.`;
 
-            // Teacher Distribution Chart
-            const teacherCtx = document.getElementById('teacherChart').getContext('2d');
-            teacherChartInstance = new Chart(teacherCtx, {
-                type: 'bar',
-                data: {
-                    labels: teacherLabels,
-                    datasets: [{
-                        label: 'Number of Students',
-                        data: teacherData,
-                        backgroundColor: '#10B981',
-                        borderColor: '#059669',
-                        borderWidth: 1
-                    }]
-                },
-                options: getChartOptions(
-                    'Student Distribution by Teacher',
-                    { legend: { display: false } },
-                    {
-                        x: { beginAtZero: true, title: { display: true, text: 'Number of Students' } },
-                        y: { title: { display: true, text: 'Teacher' } }
-                    }
-                )
-            });
 
-            // Level by Gender Chart
-            const levelGenderCtx = document.getElementById('levelGenderChart').getContext('2d');
-            levelGenderChartInstance = new Chart(levelGenderCtx, {
-                type: 'bar',
-                data: {
-                    labels: levelGenderLabels,
-                    datasets: [
-                        {
-                            label: 'Boys',
-                            data: levelGenderBoysData,
-                            backgroundColor: '#4F46E5'
-                        },
-                        {
-                            label: 'Girls',
-                            data: levelGenderGirlsData,
-                            backgroundColor: '#EC4899'
-                        }
-                    ]
-                },
-                options: getChartOptions(
-                    'Level by Gender Distribution',
-                    {},
-                    {
-                        x: { stacked: false, title: { display: true, text: 'Level' } },
-                        y: { stacked: false, beginAtZero: true, title: { display: true, text: 'Number of Students' } }
-                    }
-                )
-            });
-
-            // Department Distribution Chart
+            // Department Distribution Chart (This is a duplicate of Program Distribution, so I'll reuse the data)
             const departmentCtx = document.getElementById('departmentChart').getContext('2d');
             departmentChartInstance = new Chart(departmentCtx, {
                 type: 'doughnut',
@@ -568,51 +741,191 @@
                     labels: departmentLabels,
                     datasets: [{
                         data: departmentData,
-                        backgroundColor: [
-                            '#F59E0B', '#6366F1', '#10B981', '#EF4444'
-                        ],
-                        hoverOffset: 4
+                        backgroundColor: ['#F59E0B', '#6366F1', '#10B981', '#EF4444'],
+                        borderWidth: 0
                     }]
                 },
-                options: getChartOptions('Department Distribution')
+                options: getChartOptions('Department Distribution', {}, { cutout: '70%' })
             });
+            document.getElementById('departmentInsight').textContent = `The majority of students (${weekendPercentage}%) are in the Weekend department.`;
 
-            // Gender Distribution Chart
-            const genderCtx = document.getElementById('genderChart').getContext('2d');
-            genderChartInstance = new Chart(genderCtx, {
-                type: 'pie',
-                data: {
-                    labels: genderLabels,
-                    datasets: [{
-                        data: genderData,
-                        backgroundColor: [
-                            '#3B82F6',
-                            '#EC4899'
-                        ],
-                        hoverOffset: 4
-                    }]
-                },
-                options: getChartOptions('Overall Gender Distribution')
-            });
 
-            // Regular vs. Irregular Students Chart
-            const regularIrregularCtx = document.getElementById('regularIrregularChart').getContext('2d');
-            regularIrregularChartInstance = new Chart(regularIrregularCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: regularIrregularLabels,
-                    datasets: [{
-                        data: regularIrregularData,
-                        backgroundColor: [
-                            '#22C55E',
-                            '#EF4444'
-                        ],
-                        hoverOffset: 4
-                    }]
-                },
-                options: getChartOptions('Regular vs. Irregular Students')
+            // Level by Gender Chart
+            const levelGenderLabels = Object.keys(levelGenderDistribution).sort((a, b) => {
+                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
+                return order.indexOf(a) - order.indexOf(b);
             });
+            const levelGenderBoysData = levelGenderLabels.map(label => levelGenderDistribution[label].BOYS || 0);
+            const levelGenderGirlsData = levelGenderLabels.map(label => levelGenderDistribution[label].GIRLS || 0);
+            const levelGenderCtx = document.getElementById('levelGenderChart').getContext('2d');
+            levelGenderChartInstance = new Chart(levelGenderCtx, {
+                type: 'bar',
+                data: {
+                    labels: levelGenderLabels,
+                    datasets: [
+                        {
+                            label: 'Male',
+                            data: levelGenderBoysData,
+                            backgroundColor: '#4F46E5'
+                        },
+                        {
+                            label: 'Female',
+                            data: levelGenderGirlsData,
+                            backgroundColor: '#EC4899'
+                        }
+                    ]
+                },
+                options: getChartOptions(
+                    'Level Distribution by Gender',
+                    {},
+                    {
+                        x: { stacked: false },
+                        y: { stacked: false, beginAtZero: true }
+                    }
+                )
+            });
+            document.getElementById('levelGenderInsight').textContent = `Gender distribution across levels shows variations, with specific levels having more boys or girls.`;
+
+
+            // Populate Family Groupings Table
+            const familyTableBody = document.getElementById('familyGroupingsTableBody');
+            familyTableBody.innerHTML = ''; // Clear previous data
+            if (familyGroupingsData.length > 0) {
+                familyGroupingsData.forEach((group, index) => {
+                    const row = familyTableBody.insertRow();
+                    row.className = index % 2 === 0 ? '' : 'bg-gray-50';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">${group.parentName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${group.contactInfo}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${group.childrenCount}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${group.genderMix}</td>
+                    `;
+                });
+                document.getElementById('familyInsight').textContent = `The data reveals ${familyGroupingsData.length} families with multiple children enrolled, with the largest family group having ${familyGroupingsData[0].childrenCount} children.`;
+            } else {
+                familyTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">No family data available.</td></tr>`;
+                document.getElementById('familyInsight').textContent = `No family grouping data found. Please ensure 'PARENTS NAME' and 'CONTACT INFO' columns are present in your CSV.`;
+            }
+
+            // Populate Top Parents Section
+            const topParentsContainer = document.getElementById('topParentsContainer');
+            topParentsContainer.innerHTML = ''; // Clear previous data
+            if (familyGroupingsData.length > 0) {
+                familyGroupingsData.slice(0, 6).forEach(parent => { // Show top 6 parents
+                    const parentCard = document.createElement('div');
+                    parentCard.className = 'bg-indigo-50 rounded-lg p-4 flex items-center';
+                    parentCard.innerHTML = `
+                        <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                            <i class="fas fa-user-tie text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">${parent.parentName}</h3>
+                            <p class="text-sm text-gray-600">${parent.childrenCount} children enrolled</p>
+                        </div>
+                    `;
+                    topParentsContainer.appendChild(parentCard);
+                });
+                document.getElementById('topParentsInsight').textContent = `Several families have multiple children enrolled, indicating strong family engagement with the institution. The top parent has ${familyGroupingsData[0].childrenCount} children in the program.`;
+            } else {
+                topParentsContainer.innerHTML = `<div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 col-span-full">No top parent data available.</div>`;
+                document.getElementById('topParentsInsight').textContent = `No top parent data found. Please ensure 'PARENTS NAME' column is present in your CSV.`;
+            }
+
+            // Populate Student Data Table with Pagination
+            renderStudentTable(studentsData, currentPage);
+            setupPagination(studentsData.length);
+
+            // Update Key Insights
+            document.getElementById('insightGender').textContent = `The institution has ${maleStudentsCount} male and ${femaleStudentsCount} female students.`;
+            document.getElementById('insightFamily').textContent = `There are ${familyGroupingsData.length} families with multiple children, with the largest having ${familyGroupingsData.length > 0 ? familyGroupingsData[0].childrenCount : 0} children.`;
+            document.getElementById('insightProgram').textContent = `The Weekend program has ${weekendProgramCount} enrollments, making it the most popular program.`;
+            document.getElementById('insightLevel').textContent = `There are ${irregularStudentsCount} irregular students. The most popular levels are ${Object.keys(levelDistribution).filter(k => levelDistribution[k] === Math.max(...Object.values(levelDistribution))).join(', ')}.`;
+
+            // Update last updated timestamp
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         }
+
+        /**
+         * Renders the student data table for the current page.
+         * @param {Array<Object>} data - The full array of student objects.
+         * @param {number} page - The current page number to display.
+         */
+        function renderStudentTable(data, page) {
+            const tableBody = document.getElementById('studentDataTableBody');
+            tableBody.innerHTML = ''; // Clear previous data
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">No student data available.</td></tr>`;
+                document.getElementById('paginationInfo').textContent = `Showing 0 to 0 of 0 entries`;
+                document.getElementById('prevPageButton').disabled = true;
+                document.getElementById('nextPageButton').disabled = true;
+                document.getElementById('paginationButtons').innerHTML = '';
+                return;
+            }
+
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const paginatedData = data.slice(start, end);
+
+            paginatedData.forEach((student, index) => {
+                const row = tableBody.insertRow();
+                row.className = index % 2 === 0 ? '' : 'bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">${start + index + 1}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${student.name}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${student.level}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${student.gender}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${student.department}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${student.parentsName}</td>
+                `;
+            });
+
+            document.getElementById('paginationInfo').textContent = `Showing ${start + 1} to ${Math.min(end, data.length)} of ${data.length} entries`;
+        }
+
+        /**
+         * Sets up pagination controls.
+         * @param {number} totalItems - Total number of items (students).
+         */
+        function setupPagination(totalItems) {
+            totalPages = Math.ceil(totalItems / rowsPerPage);
+            const paginationButtonsContainer = document.getElementById('paginationButtons');
+            paginationButtonsContainer.innerHTML = ''; // Clear existing buttons
+
+            document.getElementById('prevPageButton').disabled = currentPage === 1;
+            document.getElementById('nextPageButton').disabled = currentPage === totalPages || totalPages === 0;
+
+            // Generate page number buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                button.className = `px-3 py-1 rounded-md text-sm ${i === currentPage ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`;
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    renderStudentTable(studentsData, currentPage);
+                    setupPagination(studentsData.length); // Re-render pagination to update active button
+                });
+                paginationButtonsContainer.appendChild(button);
+            }
+        }
+
+        // Event listeners for pagination buttons
+        document.getElementById('prevPageButton').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderStudentTable(studentsData, currentPage);
+                setupPagination(studentsData.length);
+            }
+        });
+
+        document.getElementById('nextPageButton').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderStudentTable(studentsData, currentPage);
+                setupPagination(studentsData.length);
+            }
+        });
+
 
         /**
          * Saves the provided raw CSV data string to Firestore.
@@ -647,22 +960,21 @@
                         currentRawData = data.csvData;
                         studentsData = parseStudentData(currentRawData);
                         if (studentsData.length > 0) {
-                            renderCharts(studentsData);
+                            renderDashboard(studentsData); // Render the full dashboard
                             displayMessage('Data updated in real-time!', 'green');
                         } else {
                             displayMessage('No valid student data found in the cloud document. Please upload a valid CSV.', 'red');
+                            renderDashboard([]); // Render empty dashboard if no valid data
                         }
                     } else {
                         // Document exists but has no csvData, possibly a new document
                         displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
-                        // Render with empty data if no CSV data is found
-                        renderCharts([]);
+                        renderDashboard([]); // Render empty dashboard if no CSV data is found
                     }
                 } else {
                     // Document does not exist, it's the first time
                     displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
-                    // Render with empty data if document doesn't exist
-                    renderCharts([]);
+                    renderDashboard([]); // Render empty dashboard if document doesn't exist
                 }
             }, (error) => {
                 showLoading(false);
@@ -718,7 +1030,7 @@
                         if (parsedStudents.length > 0) {
                             // Save the new data to Firestore
                             await saveDataToFirestore(newRawData);
-                            // The onSnapshot listener will then trigger renderCharts with the new data
+                            // The onSnapshot listener will then trigger renderDashboard with the new data
                         } else {
                             displayMessage('No valid student data found in the CSV. Not saving to cloud.', 'red');
                         }
@@ -739,14 +1051,10 @@
             }
         });
 
-        // Parse the initial embedded data and render charts on load,
-        // then initiate Firebase authentication and real-time listening.
+        // Initial render of the dashboard with sample data, then authenticate and load from Firestore
         studentsData = parseStudentData(currentRawData);
-        renderCharts(studentsData);
+        renderDashboard(studentsData);
         authenticateAndLoad();
-
-        // Ensure the initial message is cleared or set appropriately after initial load
-        // This is handled by setupFirestoreListener or authentication status
     </script>
 </body>
 </html>
