@@ -630,7 +630,8 @@
             document.getElementById('maleStudents').textContent = maleStudentsCount;
             document.getElementById('femaleStudents').textContent = femaleStudentsCount;
             document.getElementById('weekendProgram').textContent = weekendProgramCount;
-            document.getElementById('irregularStudents').textContent = irregularStudentsCount; // This is in the original template, but not in the user's latest snippet, keeping it for now.
+            // The 'irregularStudents' card is not in the user's latest HTML snippet, so I'm commenting out its update.
+            // document.getElementById('irregularStudents').textContent = irregularStudentsCount; 
 
             // Helper function to create chart options with datalabels
             function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}) {
