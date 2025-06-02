@@ -1,314 +1,573 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IQRA Academy of Michigan Student Data Insights</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Custom CSS for animations and scrollbar hiding */
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
+// Firebase Imports
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Register the datalabels plugin globally BEFORE any chart instances are created.
+Chart.register(ChartDataLabels);
+
+// === TOGGLE FOR DATALABELS FORMATTING ===
+// Set this to `true` to show percentages on pie/doughnut charts,
+// and `false` to show actual numbers on all charts.
+let showPercentageOnPieDoughnut = false;
+// =======================================
+
+// YOUR FIREBASE CONFIGURATION - THIS HAS BEEN UPDATED WITH YOUR PROVIDED VALUES
+// This is crucial for connecting to YOUR Firebase project.
+const firebaseConfig = {
+  apiKey: "AIzaSyAAg8GvVibxf1JeCzxsGuZXZhHRx1fRFzk",
+  authDomain: "iqra-academy-dashboard-backend.firebaseapp.com",
+  projectId: "iqra-academy-dashboard-backend",
+  storageBucket: "iqra-academy-dashboard-backend.firebasestorage.app",
+  messagingSenderId: "297544551827",
+  appId: "1:297544551827:web:aced8762aef12495d42c66",
+  measurementId: "G-HH530TRWPF"
+};
+
+// Firebase Initialization
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+let currentUserId = null; // To store the authenticated user ID
+let dataOwnerId = null; // To store the ID of the user who can upload data (from __initial_auth_token)
+
+// Use a consistent app ID for the Firestore path on GitHub Pages.
+// This should be a unique string for your public dashboard.
+const githubAppId = "iqra-dashboard-public";
+const studentDataDocRef = doc(db, `artifacts/${githubAppId}/public/data/student_data/main_data`); // Public data path
+
+// DOM Elements for messages and loading
+const appMessageDiv = document.getElementById('appMessage');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const uploadSection = document.getElementById('uploadSection'); // Get the upload section element
+const csvFileInput = document.getElementById('csvFileInput');
+const loadCsvButton = document.getElementById('loadCsvButton');
+const userIdDisplay = document.getElementById('userIdDisplay'); // Get the user ID display element
+
+// Initial sample data for immediate display if no data is in Firestore or uploaded yet.
+let currentRawData = `LEVEL,TEACHER,GENDER,NAME,PARENTS NAME,CONTACT INFO,RN,Department
+2,MD Abdur Rashid,BOYS,Mohammed I. Khan,M. HERON KHAN,313 455 1008,1,WEEKEND
+2,MD Abdur Rashid,BOYS,Nazmul Shaheen,KAMRUL SHAHEEN,586 303 6606,2,WEEKEND
+2,MD Abdur Rashid,BOYS,Maaz Usman,USMAN AHMED,313 661 9890,3,WEEKEND
+3,Numaan Chowdhury,BOYS,Mohd. Ahad Abid,ABDUL AHAD,586 354 5713,1,WEEKEND
+4,Hafij Badruzzaman,GIRLS,Sabiha Rahman,WALIUR RAHMAN,313 598 6417,1,WEEKEND
+1A,Wahidur M Rahman,BOYS,Radeen Noor,ROMAN NOOR,313 615 6654,1,WEEKEND
+1B,Adannan Chowdhury,GIRLS,Farhan Uddin,JAMAL UDDIN,313 443 6329,1,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Adyan Islam,FAKHRUL ISLAM,313 603 1532,1,WEEKEND
+2,Raesa Chowdhury,GIRLS,Humaira Kazi,KAZI SHAYEK MIAH,313 312 3781,1,WEEKEND
+3,Asma Alsarrah,GIRLS,Abia Mahreen,KOYES AHMED,313 685 2777,1,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Farihah Islam,KAMRUL ISLAM,313 303 6660,2,WEEKEND
+1A,Umaiza Hussain,GIRLS,Zeemal Tahir,MOHD. TAHIR,248 361 8881,1,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Samiha Ahmed,MOHD. SUHEL AHMED,313 240 2881,1,WEEKEND
+1C,Habiba Islam,GIRLS,Manha Bint Ali,M. SHAJAHAN ALI,404 665 6720,1,WEEKEND
+0,Data unavailable,BOYS,ARSHAN SUBHAN,NAZMIN SUBHAN,818 918 1527,0,EVENING
+0,Data unavailable,GIRLS,MAIMUNA MARIYAM,ABUL ALA CHY,313 603 2039,0,0
+`;
+
+let studentsData = []; // Global variable to hold parsed student data
+
+/**
+ * Displays a message to the user.
+ * @param {string} message - The message to display.
+ * @param {string} type - The type of message (e.g., 'green', 'red', 'orange').
+ */
+function displayMessage(message, type = 'gray') {
+    if (appMessageDiv) {
+        appMessageDiv.textContent = message;
+        appMessageDiv.className = `text-sm mt-2 md:mt-0 text-${type}-600`;
+    }
+}
+
+/**
+ * Shows or hides the loading indicator.
+ * @param {boolean} show - True to show, false to hide.
+ */
+function showLoading(show) {
+    if (loadingIndicator) {
+        if (show) {
+            loadingIndicator.classList.remove('hidden');
+        } else {
+            loadingIndicator.classList.add('hidden');
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }\
-            to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/**
+ * Updates the visibility and enabled state of the upload controls.
+ */
+function updateUploadControls() {
+    if (uploadSection) { // Ensure the upload section exists
+        if (currentUserId && dataOwnerId && currentUserId === dataOwnerId) {
+            // Current user is the owner, show the upload section
+            uploadSection.classList.remove('hidden');
+            displayMessage('You are signed in as the data owner. You can upload new data.', 'green');
+        } else {
+            // Current user is not the owner, hide the upload section
+            uploadSection.classList.add('hidden');
+            displayMessage('You are viewing the dashboard. Only the owner can upload files.', 'gray');
         }
-        .card-hover:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/**
+ * Parses CSV student data to extract relevant fields.
+ * This function expects the first line of the rawData to be a header row.
+ * @param {string} rawData - The raw CSV text data containing student information.
+ * @returns {Array<Object>} An array of student objects with parsed fields.
+ */
+function parseStudentData(rawData) {
+    const lines = rawData.trim().split('\n');
+    if (lines.length === 0) {
+        console.warn("No data found in rawData.");
+        return [];
+    }
+
+    // Extract headers from the first line and clean them
+    const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+    console.log("Parsed Headers:", headers);
+
+    // Define expected headers for validation and mapping
+    const expectedHeaders = ['LEVEL', 'TEACHER', 'GENDER', 'NAME', 'PARENTS NAME', 'CONTACT INFO', 'RN', 'Department'];
+
+    const missingHeaders = expectedHeaders.filter(header => !headers.includes(header));
+    if (missingHeaders.length > 0) {
+        console.error(`Missing expected headers: ${missingHeaders.join(', ')}. Please ensure your CSV has these columns.`);
+        displayMessage(`CSV Error: Missing columns - ${missingHeaders.join(', ')}.`, 'red');
+        return [];
+    }
+
+    const students = [];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === '') continue;
+
+        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+
+        if (values.length !== headers.length) {
+            console.warn(`Skipping malformed line (column count mismatch): ${line}`);
+            continue;
         }
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
+
+        const student = {};
+        for (let j = 0; j < headers.length; j++) {
+            const header = headers[j];
+            let value = values[j].trim();
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1);
+            }
+            student[header] = value;
         }
-        .scrollbar-hide {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+
+        // Normalize data for consistency
+        const normalizedDepartment = student['Department'] ? student['Department'].trim().toUpperCase() : '';
+        const normalizedLevel = student.LEVEL ? student.LEVEL.trim().toUpperCase() : '';
+        const normalizedGender = student.GENDER ? student.GENDER.trim().toUpperCase() : '';
+        const normalizedParentName = student['PARENTS NAME'] ? student['PARENTS NAME'].trim().toUpperCase() : '';
+
+        if (normalizedLevel && student.TEACHER && normalizedGender && normalizedParentName) {
+            students.push({
+                level: normalizedLevel,
+                teacher: student.TEACHER,
+                gender: (normalizedGender === 'BOYS' || normalizedGender === 'MALE') ? 'BOYS' : ((normalizedGender === 'GIRLS' || normalizedGender === 'FEMALE') ? 'GIRLS' : 'UNKNOWN'),
+                name: student.NAME || '',
+                parentsName: normalizedParentName,
+                contactInfo: student['CONTACT INFO'] || '',
+                rn: student.RN || '',
+                department: (normalizedDepartment !== '0') ? normalizedDepartment : ''
+            });
+        } else {
+            console.warn("Skipping line due to missing core data (LEVEL, TEACHER, GENDER, or PARENTS NAME):", student);
+        }
+    }
+    console.log("Total Parsed Students:", students.length);
+    return students;
+}
+
+// Chart instances storage
+let genderChartInstance, departmentChartInstance, levelGenderChartInstance, regularIrregularChartInstance;
+
+/**
+ * Renders all charts and updates summary cards based on the provided student data.
+ * @param {Array<Object>} studentsData - The array of parsed student objects.
+ */
+function renderDashboard(studentsData) {
+    // Calculate summary metrics
+    const totalStudentsCount = studentsData.length;
+    let maleStudentsCount = 0;
+    let femaleStudentsCount = 0;
+    let weekendProgramCount = 0;
+    let irregularStudentsCount = 0;
+
+    const levelDistribution = {};
+    const levelGenderDistribution = {};
+    const departmentDistribution = {};
+    const genderDistribution = { BOYS: 0, GIRLS: 0 };
+
+    studentsData.forEach(student => {
+        // Gender counts
+        if (student.gender === 'BOYS') {
+            maleStudentsCount++;
+            genderDistribution['BOYS']++;
+        } else if (student.gender === 'GIRLS') {
+            femaleStudentsCount++;
+            genderDistribution['GIRLS']++;
         }
 
-        /* Basic print styles - to attempt vertical stacking.
-           More robust print styles might be needed for complex layouts. */
-        @media print {
-            /* Universal print reset for consistent box model */
-            * {
-                box-sizing: border-box !important;
-                margin: 0 !important;
-                padding: 0 !important;
+        // Program/Department counts
+        if (student.department === 'WEEKEND') {
+            weekendProgramCount++;
+        }
+        if (student.department && student.department !== '') {
+            departmentDistribution[student.department] = (departmentDistribution[student.department] || 0) + 1;
+        }
+
+        // Level distribution (still calculated for insight text)
+        levelDistribution[student.level] = (levelDistribution[student.level] || 0) + 1;
+
+        // Level by Gender
+        if (!levelGenderDistribution[student.level]) {
+            levelGenderDistribution[student.level] = { BOYS: 0, GIRLS: 0 };
+        }
+        if (student.gender === 'BOYS') {
+            levelGenderDistribution[student.level]['BOYS']++;
+        } else if (student.gender === 'GIRLS') {
+            levelGenderDistribution[student.level]['GIRLS']++;
+        }
+
+        // Irregular students
+        const rnValue = String(student.rn).trim(); // Ensure RN is treated as string for comparison
+        if (rnValue === '' || rnValue === '0' || rnValue.toLowerCase() === 'data unavailable') {
+            irregularStudentsCount++;
+        }
+    });
+
+    // Update Summary Cards
+    document.getElementById('totalStudents').textContent = totalStudentsCount;
+    document.getElementById('maleStudents').textContent = maleStudentsCount;
+    document.getElementById('femaleStudents').textContent = femaleStudentsCount;
+    document.getElementById('weekendProgram').textContent = weekendProgramCount;
+    document.getElementById('irregularStudents').textContent = irregularStudentsCount; 
+
+    // Prepare data for Regular vs. Irregular Chart
+    const regularStudentsCount = totalStudentsCount - irregularStudentsCount;
+    const regularIrregularLabels = ['Regular Students', 'Irregular Students'];
+    const regularIrregularData = [regularStudentsCount, irregularStudentsCount];
+
+    // Helper function to create chart options with datalabels
+    function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: titleText ? true : false,
+                    text: titleText
+                },
+                datalabels: {
+                    color: '#fff',
+                    font: {
+                        weight: 'bold'
+                    },
+                    formatter: (value, context) => {
+                        if (showPercentageOnPieDoughnut && (context.chart.config.type === 'pie' || context.chart.config.type === 'doughnut')) {
+                            const sum = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = (sum > 0) ? (value * 100 / sum).toFixed(1) + '%' : '0%';
+                            return percentage;
+                        }
+                        return value;
+                    }
+                },
+                ...pluginsOptions
+            },
+            scales: scalesOptions
+        };
+    }
+
+    // Destroy existing chart instances before creating new ones to prevent memory leaks and conflicts
+    if (genderChartInstance) genderChartInstance.destroy();
+    if (departmentChartInstance) departmentChartInstance.destroy();
+    if (levelGenderChartInstance) levelGenderChartInstance.destroy();
+    if (regularIrregularChartInstance) regularIrregularChartInstance.destroy();
+
+    // Gender Distribution Chart
+    const genderCtx = document.getElementById('genderChart').getContext('2d');
+    genderChartInstance = new Chart(genderCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Male', 'Female'],
+            datasets: [{
+                data: [genderDistribution.BOYS, genderDistribution.GIRLS],
+                backgroundColor: ['#4F46E5', '#EC4899'],
+                borderWidth: 0
+            }]
+        },
+        options: getChartOptions('Gender Distribution', {}, { cutout: '70%' })
+    });
+    document.getElementById('genderInsight').textContent = `The data shows a gender distribution with ${genderDistribution.BOYS} male and ${genderDistribution.GIRLS} female students.`;
+
+
+    // Department Distribution Chart (Previously Program Distribution, now explicitly Department)
+    const departmentLabels = Object.keys(departmentDistribution).sort();
+    const departmentData = departmentLabels.map(label => departmentDistribution[label]);
+    const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+    departmentChartInstance = new Chart(departmentCtx, {
+        type: 'doughnut', // Changed to doughnut for this chart based on previous HTML snippet
+        data: {
+            labels: departmentLabels,
+            datasets: [{
+                data: departmentData,
+                backgroundColor: ['#F59E0B', '#6366F1', '#10B981', '#EF4444'], // Add more colors if needed
+                borderWidth: 0
+            }]
+        },
+        options: getChartOptions('Department Distribution', {}, { cutout: '70%' }) // Added cutout for doughnut
+    });
+    const totalDepartmentStudents = departmentData.reduce((sum, count) => sum + count, 0);
+    const weekendPercentage = totalDepartmentStudents > 0 ? ((departmentDistribution['WEEKEND'] || 0) / totalDepartmentStudents * 100).toFixed(1) : '0';
+    document.getElementById('departmentInsight').textContent = `The majority of students (${weekendPercentage}%) are in the Weekend department.`;
+
+
+    // Level by Gender Chart (Kept as requested, replacing general Level Distribution)
+    const levelGenderLabels = Object.keys(levelGenderDistribution).sort((a, b) => {
+        const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
+        return order.indexOf(a) - order.indexOf(b);
+    });
+    const levelGenderBoysData = levelGenderLabels.map(label => levelGenderDistribution[label].BOYS || 0);
+    const levelGenderGirlsData = levelGenderLabels.map(label => levelGenderDistribution[label].GIRLS || 0);
+    const levelGenderCtx = document.getElementById('levelGenderChart').getContext('2d');
+    levelGenderChartInstance = new Chart(levelGenderCtx, {
+        type: 'bar',
+        data: {
+            labels: levelGenderLabels,
+            datasets: [
+                {
+                    label: 'Male',
+                    data: levelGenderBoysData,
+                    backgroundColor: '#4F46E5'
+                },
+                {
+                    label: 'Female',
+                    data: levelGenderGirlsData,
+                    backgroundColor: '#EC4899'
+                }
+            ]
+        },
+        options: getChartOptions(
+            'Level Distribution by Gender',
+            {},
+            {
+                x: { stacked: false },
+                y: { stacked: false, beginAtZero: true }
+            }
+        )
+    });
+    document.getElementById('levelGenderInsight').textContent = `Gender distribution across levels shows variations, with specific levels having more boys or girls.`;
+
+    // Regular vs. Irregular Students Chart (Re-added)
+    const regularIrregularCtx = document.getElementById('regularIrregularChart').getContext('2d');
+    regularIrregularChartInstance = new Chart(regularIrregularCtx, {
+        type: 'doughnut',
+        data: {
+            labels: regularIrregularLabels,
+            datasets: [{
+                data: regularIrregularData,
+                backgroundColor: [
+                    '#22C55E', // Green for Regular
+                    '#EF4444'  // Red for Irregular
+                ],
+                hoverOffset: 4
+            }]
+        },
+        options: getChartOptions('Regular vs. Irregular Students', {}, { cutout: '70%' })
+    });
+    document.getElementById('regularIrregularInsight').textContent = `There are ${regularStudentsCount} regular students and ${irregularStudentsCount} irregular students.`;
+
+
+    // Update Key Insights
+    document.getElementById('insightGender').textContent = `The institution has ${genderDistribution.BOYS} male and ${genderDistribution.GIRLS} female students.`;
+    document.getElementById('insightProgram').textContent = `The Weekend program has ${weekendProgramCount} enrollments, making it the most popular program.`;
+    document.getElementById('insightEnrollment').textContent = `There are ${irregularStudentsCount} irregular students, indicating a need to review attendance/registration for these students.`;
+    document.getElementById('insightLevel').textContent = `The most common levels are ${Object.keys(levelDistribution).filter(k => levelDistribution[k] === Math.max(...Object.values(levelDistribution))).join(', ')}.`;
+
+    // Update last updated timestamp
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/**
+ * Saves the provided raw CSV data string to Firestore.
+ * @param {string} data - The raw CSV data string to save.
+ */
+async function saveDataToFirestore(data) {
+    showLoading(true);
+    displayMessage('Saving data to the cloud...', 'orange');
+    try {
+        await setDoc(studentDataDocRef, { csvData: data, timestamp: new Date().toISOString() });
+        displayMessage('Data saved successfully!', 'green');
+    } catch (error) {
+        console.error("Error writing document:", error);
+        displayMessage('Error saving data. Please try again.', 'red');
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Sets up a real-time listener for student data from Firestore.
+ * This function is called after successful authentication.
+ */
+function setupFirestoreListener() {
+    showLoading(true);
+    displayMessage('Fetching latest data...', 'gray');
+    onSnapshot(studentDataDocRef, (docSnap) => {
+        showLoading(false);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data && data.csvData) {
+                currentRawData = data.csvData;
+                studentsData = parseStudentData(currentRawData);
+                if (studentsData.length > 0) {
+                    renderDashboard(studentsData); // Render the full dashboard
+                    displayMessage('Data updated in real-time!', 'green');
+                } else {
+                    displayMessage('No valid student data found in the cloud document. Please upload a valid CSV.', 'red');
+                    renderDashboard([]); // Render empty dashboard if no valid data
+                }
+            } else {
+                // Document exists but has no csvData, possibly a new document
+                displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
+                renderDashboard([]); // Render empty dashboard if no CSV data is found
+            }
+        } else {
+            // Document does not exist, it's the first time
+            displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
+            renderDashboard([]); // Render empty dashboard if document doesn't exist
+        }
+    }, (error) => {
+        showLoading(false);
+        console.error("Error listening to document:", error);
+        displayMessage('Error fetching real-time updates. Check console for details (e.g., Firebase security rules).', 'red');
+    });
+}
+
+/**
+ * Handles Firebase authentication and then sets up the Firestore listener.
+ */
+async function authenticateAndLoad() {
+    showLoading(true);
+    displayMessage('Authenticating...', 'gray');
+
+    // This listener is the primary way to react to authentication state changes.
+    // It will fire immediately on page load with the current user state (can be null).
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // User is authenticated
+            currentUserId = user.uid;
+            userIdDisplay.textContent = currentUserId; // Update the display immediately
+            console.log("Authenticated as:", currentUserId);
+
+            // Determine if this session is the 'owner' session.
+            // __initial_auth_token is a unique variable provided by the Canvas environment
+            // only to the owner's instance.
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                dataOwnerId = user.uid; // If token exists, this user is the owner.
+                console.log("Data Owner ID set to current user's UID (Canvas owner session).");
+            } else {
+                dataOwnerId = null; // Not the Canvas owner's session.
+                console.log("Not identified as Canvas owner (no __initial_auth_token).");
             }
 
-            html, body {
-                width: 100%;
-                min-height: 100vh; /* Ensure content flows */
-                overflow: visible !important; /* Prevent hidden content */
-                font-family: sans-serif; /* Ensure a readable font */
-            }
+            updateUploadControls(); // Update upload controls based on authentication status and owner ID
+            setupFirestoreListener(); // Setup listener after auth is confirmed
+        } else {
+            // No user is currently signed in. Attempt to sign in.
+            currentUserId = null;
+            dataOwnerId = null; // Reset data owner ID
+            userIdDisplay.textContent = 'Not Authenticated'; // Update the display immediately
+            console.log("No user authenticated. Attempting sign-in...");
 
-            .container {
-                max-width: 100% !important;
-                padding: 0.5in !important; /* Add some print margin */
-            }
-
-            /* Header adjustments for print */
-            header {
-                margin-bottom: 0.5in !important;
-            }
-            h1 {
-                font-size: 2.2em !important; /* Slightly smaller for print */
-                margin-bottom: 0.2em !important;
-            }
-            p {
-                font-size: 1.1em !important;
-            }
-
-            /* Force sections and their direct children to stack vertically */
-            section.grid {
-                display: block !important;
-                width: 100% !important; /* Ensure section takes full print width */
-                margin-bottom: 0.5in !important; /* Space between major sections */
-            }
-            section.grid > div {
-                display: block !important;
-                width: 100% !important;
-                margin-bottom: 0.3in !important; /* Add space between stacked charts/cards */
-                page-break-inside: avoid !important; /* Prevent breaking charts/cards across pages */
-            }
-
-            /* Ensure chart canvases and their containers adjust height */
-            .h-80, .h-96 {
-                height: auto !important;
-                min-height: 200px !important; /* Ensure a minimum height for charts */
-            }
-            canvas {
-                max-width: 100% !important; /* Ensure canvas fits within its container */
-                height: auto !important;
-                display: block !important; /* Ensure canvas behaves as a block element */
-            }
-
-            /* Adjust font sizes for print if necessary */
-            h2 { font-size: 1.4em !important; margin-bottom: 0.2em !important; }
-
-            /* Hide elements not needed for print */
-            .no-print {
-                display: none !important;
-            }
-
-            /* Ensure backgrounds and shadows print */
-            body {
-                -webkit-print-color-adjust: exact; /* Chrome, Safari */
-                color-adjust: exact; /* Firefox */
-            }
-            .bg-white, .shadow-lg {
-                background-color: #ffffff !important;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Lighter shadow for print */
+            try {
+                // If the __initial_auth_token is available, try to sign in with it (owner).
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    console.log("Attempting signInWithCustomToken...");
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    // onAuthStateChanged will fire again with the owner user.
+                } else {
+                    // Otherwise, sign in anonymously (for public viewers).
+                    console.log("Attempting signInAnonymously...");
+                    await signInAnonymously(auth);
+                    // onAuthStateChanged will fire again with the anonymous user.
+                }
+            } catch (error) {
+                console.error("Authentication attempt failed:", error);
+                displayMessage("Authentication failed. Data might not be persistent for this session.", 'red');
+                showLoading(false);
+                updateUploadControls(); // Hide upload section if auth fails
+                renderDashboard([]); // Render empty dashboard if no data can be fetched
             }
         }
-    </style>
-</head>
-<body class="bg-gray-50 font-sans">
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-12 fade-in">
-            <h1 class="text-5xl font-extrabold text-gray-900 mb-4">IQRA Academy of Michigan Student Data Insights</h1>
-            <p class="text-xl text-gray-600">Visualizing key student demographics and academic performance metrics.</p>
-            <div class="w-24 h-1 bg-indigo-500 mx-auto mt-4 rounded-full"></div>
-        </header>
+    });
 
-        <section class="bg-white p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-4 fade-in no-print">
-            <div class="text-sm text-gray-600">
-                Your User ID: <span id="userIdDisplay" class="font-bold text-gray-800">Loading...</span>
-            </div>
-            <div id="appMessage" class="text-sm text-gray-600"></div>
-            <div id="loadingIndicator" class="hidden">
-                <i class="fas fa-spinner fa-spin text-indigo-600 text-xl"></i>
-            </div>
-        </section>
+    // This initial call ensures the onAuthStateChanged listener is set up immediately.
+    // The listener itself will handle subsequent sign-in attempts.
+    // No direct signIn calls here, as onAuthStateChanged handles the initial state.
+}
 
-        <section id="uploadSection" class="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 fade-in no-print hidden">
-            <label for="csvFileInput" class="block text-gray-700 font-semibold">Upload Student Data (CSV):</label>
-            <input type="file" id="csvFileInput" accept=".csv" class="block w-full md:w-auto text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-purple-50 file:text-purple-700
-                hover:file:bg-purple-100"/>
-            <button id="loadCsvButton" class="px-6 py-2 rounded-full bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-700 transition-colors duration-300">
-                Load Data
-            </button>
-        </section>
+// Event listener for file input change
+if (loadCsvButton) { // Ensure button exists before adding listener
+    loadCsvButton.addEventListener('click', () => {
+        const file = csvFileInput ? csvFileInput.files[0] : null;
 
-        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 fade-in">
-            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                        <i class="fas fa-users text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Total Students</p>
-                        <h3 id="totalStudents" class="text-2xl font-bold text-gray-800">0</h3>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-                        <i class="fas fa-male text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Male Students</p>
-                        <h3 id="maleStudents" class="text-2xl font-bold text-gray-800">0</h3>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-pink-100 text-pink-600 mr-4">
-                        <i class="fas fa-female text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Female Students</p>
-                        <h3 id="femaleStudents" class="text-2xl font-bold text-gray-800">0</h3>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                        <i class="fas fa-calendar-alt text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Weekend Program</p>
-                        <h3 id="weekendProgram" class="text-2xl font-bold text-gray-800">0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-                        <i class="fas fa-exclamation-triangle text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-gray-500">Irregular Students</p>
-                        <h3 id="irregularStudents" class="text-2xl font-bold text-gray-800">0</h3>
-                    </div>
-                </div>
-            </div>
-        </section>
+        // Ensure only the owner can trigger this action
+        if (!(currentUserId && dataOwnerId && currentUserId === dataOwnerId)) {
+            displayMessage('You do not have permission to upload files.', 'red');
+            return;
+        }
 
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-venus-mars text-indigo-500 mr-2"></i>
-                    Gender Distribution
-                </h2>
-                <div class="h-64">
-                    <canvas id="genderChart"></canvas>
-                </div>
-                <div class="mt-4 text-sm text-gray-600">
-                    <p id="genderInsight">Loading insights...</p>
-                </div>
-            </div>
+        if (file) {
+            if (file.type !== 'text/csv') {
+                displayMessage('Please upload a CSV file.', 'red');
+                return;
+            }
 
-            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-building text-orange-500 mr-2"></i>
-                    Department Distribution
-                </h2>
-                <div class="h-64">
-                    <canvas id="departmentChart"></canvas>
-                </div>
-                <div class="mt-4 text-sm text-gray-600">
-                    <p id="departmentInsight">Loading insights...</p>
-                </div>
-            </div>
+            displayMessage('Reading file...', 'orange');
+            showLoading(true);
 
-            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-chart-bar text-teal-500 mr-2"></i>
-                    Level Distribution by Gender
-                </h2>
-                <div class="h-64">
-                    <canvas id="levelGenderChart"></canvas>
-                </div>
-                <div class="mt-4 text-sm text-gray-600">
-                    <p id="levelGenderInsight">Loading insights...</p>
-                </div>
-            </div>
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const newRawData = e.target.result;
+                    const parsedStudents = parseStudentData(newRawData);
+                    if (parsedStudents.length > 0) {
+                        // Save the new data to Firestore
+                        await saveDataToFirestore(newRawData);
+                        // The onSnapshot listener will then trigger renderDashboard with the new data
+                    } else {
+                        displayMessage('No valid student data found in the CSV. Not saving to cloud.', 'red');
+                    }
+                } catch (error) {
+                    console.error("Error processing CSV:", error);
+                    displayMessage('Error processing file. Please check console for details.', 'red');
+                } finally {
+                    showLoading(false);
+                }
+            };
+            reader.onerror = () => {
+                displayMessage('Error reading file.', 'red');
+                showLoading(false);
+            };
+            reader.readAsText(file);
+        } else {
+            displayMessage('Please select a CSV file to upload.', 'red');
+        }
+    });
+}
 
-            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-user-times text-red-500 mr-2"></i>
-                    Regular vs. Irregular Students
-                </h2>
-                <div class="h-64">
-                    <canvas id="regularIrregularChart"></canvas>
-                </div>
-                <div class="mt-4 text-sm text-gray-600">
-                    <p id="regularIrregularInsight">Loading insights...</p>
-                </div>
-            </div>
-        </section>
 
-        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-user-friends text-red-500 mr-2"></i>
-                Top Parents by Number of Children Enrolled
-            </h2>
-            <div id="topParentsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 col-span-full">No top parent data available.</div>
-            </div>
-            <div class="mt-4 text-sm text-gray-600">
-                <p id="topParentsInsight">Loading insights...</p>
-            </div>
-        </section>
-
-        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
-                Key Insights from the Data
-            </h2>
-            <div id="keyInsightsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-blue-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
-                        <i class="fas fa-balance-scale text-blue-500 mr-2"></i>
-                        Gender Balance
-                    </h3>
-                    <p id="insightGender" class="text-sm text-gray-700">Loading insights...</p>
-                </div>
-                <div class="bg-green-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-green-800 mb-2 flex items-center">
-                        <i class="fas fa-home text-green-500 mr-2"></i>
-                        Program Overview
-                    </h3>
-                    <p id="insightProgram" class="text-sm text-gray-700">Loading insights...</p>
-                </div>
-                <div class="bg-purple-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-purple-800 mb-2 flex items-center">
-                        <i class="fas fa-chart-line text-purple-500 mr-2"></i>
-                        Enrollment Status
-                    </h3>
-                    <p id="insightEnrollment" class="text-sm text-gray-700">Loading insights...</p>
-                </div>
-                <div class="bg-orange-50 rounded-lg p-4">
-                    <h3 class="font-semibold text-orange-800 mb-2 flex items-center">
-                        <i class="fas fa-graduation-cap text-orange-500 mr-2"></i>
-                        Level Distribution Insights
-                    </h3>
-                    <p id="insightLevel" class="text-sm text-gray-700">Loading insights...</p>
-                </div>
-            </div>
-        </section>
-
-        <footer class="text-center py-6 text-gray-500 text-sm">
-            <p>&copy; 2023 IQRA Academy of Michigan. All rights reserved.</p>
-            <p class="mt-1">Data last updated: <span id="lastUpdated">N/A</span></p>
-        </footer>
-    </div>
-
-    <script type="module" src="dashboard.js"></script>
-</body>
-</html>
+// Initial render of the dashboard with sample data, then authenticate and load from Firestore
+// This ensures the dashboard has some data to display immediately.
+studentsData = parseStudentData(currentRawData);
+renderDashboard(studentsData);
+authenticateAndLoad();
