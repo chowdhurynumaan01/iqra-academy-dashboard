@@ -123,8 +123,20 @@ function parseStudentData(rawData) {
         return [];
     }
 
+    // Regex to split CSV line, handling quoted fields with commas and escaped quotes
+    // It captures either a quoted string (group 1) or a non-quoted string (group 2)
+    const csvRegex = /(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]*))(?:,|$)/g;
+
     // Extract headers from the first line and clean them
-    const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+    const headerLine = lines[0];
+    let headerMatch;
+    const headers = [];
+    csvRegex.lastIndex = 0; // Reset regex lastIndex for header line
+    while ((headerMatch = csvRegex.exec(headerLine)) !== null) {
+        // Group 1 is for quoted, Group 2 is for non-quoted
+        let headerValue = headerMatch[1] !== undefined ? headerMatch[1] : headerMatch[2];
+        headers.push(headerValue.trim().replace(/""/g, '"')); // Unescape double quotes
+    }
     console.log("Parsed Headers:", headers);
 
     // Define expected headers for validation and mapping
@@ -142,29 +154,37 @@ function parseStudentData(rawData) {
         const line = lines[i].trim();
         if (line === '') continue;
 
-        // Use a more robust regex to handle commas within quoted fields
-        const values = line.match(/(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]*))(?:,|$)/g) || [];
-        const processedValues = values.map(val => {
-            if (val.startsWith('"') && val.endsWith(',')) {
-                return val.slice(1, -2).replace(/""/g, '"'); // Remove quotes and trailing comma, handle escaped quotes
-            } else if (val.startsWith('"') && val.endsWith('"')) {
-                 return val.slice(1, -1).replace(/""/g, '"'); // Remove quotes, handle escaped quotes
-            } else if (val.endsWith(',')) {
-                return val.slice(0, -1).trim(); // Remove trailing comma
+        let match;
+        const values = [];
+        let lastIndex = 0;
+        csvRegex.lastIndex = 0; // Reset regex lastIndex for each new line
+
+        while ((match = csvRegex.exec(line)) !== null) {
+            // If the match is not at the expected position, it indicates a parsing issue
+            if (match.index > lastIndex) {
+                console.warn(`Malformed CSV line (gap or uncaptured text between fields): ${line}`);
+                // This line is likely malformed, skip further processing for it
+                values.length = 0; // Clear values to ensure this line is skipped
+                break;
             }
-            return val.trim();
-        });
 
+            let value = match[1] !== undefined ? match[1] : match[2];
+            values.push(value.trim().replace(/""/g, '"')); // Unescape double quotes
+            lastIndex = csvRegex.lastIndex;
 
-        if (processedValues.length !== headers.length) {
-            console.warn(`Skipping malformed line (column count mismatch): ${line}`);
+            // Break if we've processed the entire line or reached the end
+            if (lastIndex === line.length) break;
+        }
+
+        if (values.length !== headers.length) {
+            console.warn(`Skipping malformed line (column count mismatch or parsing error): ${line}`);
             continue;
         }
 
         const student = {};
         for (let j = 0; j < headers.length; j++) {
             const header = headers[j];
-            student[header] = processedValues[j];
+            student[header] = values[j];
         }
 
         // Normalize data for consistency
@@ -252,6 +272,7 @@ function renderDashboard(studentsData) {
         }
 
         // Family Groupings
+        // Only process if parentsName is not empty, '0', or 'data unavailable'
         if (student.parentsName && student.parentsName !== '0' && student.parentsName.toLowerCase() !== 'data unavailable') {
             if (!familyGroups[student.parentsName]) {
                 familyGroups[student.parentsName] = {
