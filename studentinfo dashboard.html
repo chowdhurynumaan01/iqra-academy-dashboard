@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQRA Academy of Michigan Student Data Insights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom CSS for animations and scrollbar hiding */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }\
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Basic print styles - to attempt vertical stacking.
+           More robust print styles might be needed for complex layouts. */
+        @media print {
+            /* Universal print reset for consistent box model */
+            * {
+                box-sizing: border-box !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            html, body {
+                width: 100%;
+                min-height: 100vh; /* Ensure content flows */
+                overflow: visible !important; /* Prevent hidden content */
+                font-family: sans-serif; /* Ensure a readable font */
+            }
+
+            .container {
+                max-width: 100% !important;
+                padding: 0.5in !important; /* Add some print margin */
+            }
+
+            /* Header adjustments for print */
+            header {
+                margin-bottom: 0.5in !important;
+            }
+            h1 {
+                font-size: 2.2em !important; /* Slightly smaller for print */
+                margin-bottom: 0.2em !important;
+            }
+            p {
+                font-size: 1.1em !important;
+            }
+
+            /* Force sections and their direct children to stack vertically */
+            section.grid {
+                display: block !important;
+                width: 100% !important; /* Ensure section takes full print width */
+                margin-bottom: 0.5in !important; /* Space between major sections */
+            }
+            section.grid > div {
+                display: block !important;
+                width: 100% !important;
+                margin-bottom: 0.3in !important; /* Add space between stacked charts/cards */
+                page-break-inside: avoid !important; /* Prevent breaking charts/cards across pages */
+            }
+
+            /* Ensure chart canvases and their containers adjust height */
+            .h-80, .h-96 {
+                height: auto !important;
+                min-height: 200px !important; /* Ensure a minimum height for charts */
+            }
+            canvas {
+                max-width: 100% !important; /* Ensure canvas fits within its container */
+                height: auto !important;
+                display: block !important; /* Ensure canvas behaves as a block element */
+            }
+
+            /* Adjust font sizes for print if necessary */
+            h2 { font-size: 1.4em !important; margin-bottom: 0.2em !important; }
+
+            /* Hide elements not needed for print */
+            .no-print {
+                display: none !important;
+            }
+
+            /* Ensure backgrounds and shadows print */
+            body {
+                -webkit-print-color-adjust: exact; /* Chrome, Safari */
+                color-adjust: exact; /* Firefox */
+            }
+            .bg-white, .shadow-lg {
+                background-color: #ffffff !important;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important; /* Lighter shadow for print */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12 fade-in">
+            <h1 class="text-5xl font-extrabold text-gray-900 mb-4">IQRA Academy of Michigan Student Data Insights</h1>
+            <p class="text-xl text-gray-600">Visualizing key student demographics and academic performance metrics.</p>
+        </header>
+
+        <section class="bg-white p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-4 fade-in no-print">
+            <div class="text-sm text-gray-600">
+                Your User ID: <span id="userIdDisplay" class="font-bold text-gray-800">Loading...</span>
+            </div>
+            <div id="appMessage" class="text-sm text-gray-600"></div>
+            <div id="loadingIndicator" class="hidden">
+                <i class="fas fa-spinner fa-spin text-indigo-600 text-xl"></i>
+            </div>
+        </section>
+
+        <section class="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 fade-in no-print">
+            <label for="csvFileInput" class="block text-gray-700 font-semibold">Upload Student Data (CSV):</label>
+            <input type="file" id="csvFileInput" accept=".csv" class="block w-full md:w-auto text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-full file:border-0
+                file:text-sm file:font-semibold
+                file:bg-purple-50 file:text-purple-700
+                hover:file:bg-purple-100"/>
+            <button id="loadCsvButton" class="px-6 py-2 rounded-full bg-indigo-600 text-white font-semibold shadow-md hover:bg-indigo-700 transition-colors duration-300">
+                Load Data
+            </button>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total Students</p>
+                    <p id="totalStudents" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <i class="fas fa-users text-purple-600 text-5xl opacity-20"></i>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total Teachers</p>
+                    <p id="totalTeachers" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <i class="fas fa-chalkboard-teacher text-indigo-600 text-5xl opacity-20"></i>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between card-hover transition-all duration-300 ease-in-out">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Irregular Students</p>
+                    <p id="irregularStudents" class="text-4xl font-bold text-gray-900 mt-1">0</p>
+                </div>
+                <i class="fas fa-exclamation-triangle text-red-600 text-5xl opacity-20"></i>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Level Distribution</h2>
+                <div class="h-80">
+                    <canvas id="levelChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Teacher Distribution</h2>
+                <div class="h-80">
+                    <canvas id="teacherChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Department Distribution</h2>
+                <div class="h-80">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Gender Distribution</h2>
+                <div class="h-80">
+                    <canvas id="genderChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Regular vs. Irregular Students</h2>
+                <div class="h-80">
+                    <canvas id="regularIrregularChart"></canvas>
+                </div>
+            </div>
+            <div class="lg:col-span-2 xl:col-span-3 bg-white p-6 rounded-xl shadow-lg fade-in">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Level by Gender</h2>
+                <div class="h-96">
+                    <canvas id="levelGenderChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center text-gray-500 text-sm mt-8">
+            <p>&copy; 2023 IQRA Academy of Michigan. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Register the datalabels plugin globally BEFORE any chart instances are created.
+        Chart.register(ChartDataLabels);
+
+        // === TOGGLE FOR DATALABELS FORMATTING ===
+        // Set this to `true` to show percentages on pie/doughnut charts,
+        // and `false` to show actual numbers on all charts.
+        let showPercentageOnPieDoughnut = false;
+        // =======================================
+
+        // Firebase Initialization
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        let currentUserId = null; // To store the authenticated user ID
+        const studentDataDocRef = doc(db, `artifacts/${appId}/public/data/student_data/main_data`); // Public data path
+
+        // DOM Elements for messages and loading
+        const appMessageDiv = document.getElementById('appMessage');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        /**
+         * Displays a message to the user.
+         * @param {string} message - The message to display.
+         * @param {string} type - The type of message (e.g., 'green', 'red', 'orange').
+         */
+        function displayMessage(message, type = 'gray') {
+            appMessageDiv.textContent = message;
+            appMessageDiv.className = `text-sm mt-2 md:mt-0 text-${type}-600`;
+        }
+
+        /**
+         * Shows or hides the loading indicator.
+         * @param {boolean} show - True to show, false to hide.
+         */
+        function showLoading(show) {
+            if (show) {
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        // Raw student data initially embedded in the HTML.
+        // This will be replaced by uploaded data or data from Firestore.
+        let currentRawData = `LEVEL,TEACHER,GENDER,NAME,PARENTS NAME,CONTACT INFO,RN,Department
+2,MD Abdur Rashid,BOYS,Mohammed I. Khan,M. HERON KHAN,313 455 1008,1,WEEKEND
+2,MD Abdur Rashid,BOYS,Nazmul Shaheen,KAMRUL  SHAHEEN,586 303 6606,2,WEEKEND
+2,MD Abdur Rashid,BOYS,Maaz Usman,USMAN  AHMED,313 661 9890,3,WEEKEND
+2,MD Abdur Rashid,BOYS,Mihran Affan,MOHD. KASHEM,586 303 5531,4,WEEKEND
+2,MD Abdur Rashid,BOYS,Abu Thihamin,ATHIQUR RAHMAN,313 327 7472,5,WEEKEND
+2,MD Abdur Rashid,BOYS,Riyad Miah,MOHD. DULAL MIAH,313 598 4347,6,WEEKEND
+2,MD Abdur Rashid,BOYS,Tawsef Uddin,SOIF  UDDIN,586  457  5821,7,WEEKEND
+2,MD Abdur Rashid,BOYS,Muaz Mohd. Karim,MOHD. REZAUL KARIM,586 873 2226,8,WEEKEND
+2,MD Abdur Rashid,BOYS,Ahanaf H Anas,MOHD. SHOHEL RANA,213 357 7649,9,WEEKEND
+2,MD Abdur Rashid,BOYS,Amdadul Haque,NURUL HAQUE,313 707 4736,10,WEEKEND
+2,MD Abdur Rashid,BOYS,Ihsan Chowdhury,SHANU  CHOWDHURY,586 360 0337,11,WEEKEND
+3,Numaan Chowdhury,BOYS,Mohd. Ahad Abid,ABDUL  AHAD,586 354 5713,1,WEEKEND
+3,Numaan Chowdhury,BOYS,Rafi Ahmed,KOYES  AHMED,313 685 2777,2,WEEKEND
+3,Numaan Chowdhury,BOYS,Mohd. Ayan Miah,MOHD. KHADIR  MIAH,313 782 2835,3,WEEKEND
+3,Numaan Chowdhury,BOYS,Ameer Islam Alani,ABDUL ALANI,313 434 3042,4,WEEKEND
+3,Numaan Chowdhury,BOYS,Nafim Ahmed,MOHD. SUHEL AHMED,313 240 2881,5,WEEKEND
+3,Numaan Chowdhury,BOYS,Shajidur Rahman,ABDUR RAHMAN,313 914 8195,6,EVENING
+3,Numaan Chowdhury,BOYS,Shahadat Hasan,MOHD. HASAN,313 744 0046,7,WEEKEND
+3,Numaan Chowdhury,BOYS,Adom Musaid,ADHAM  MUSAID,313  603  4810,8,WEEKEND
+3,Numaan Chowdhury,BOYS,Aryan Samad,ABDUS SAMAD,586 224 6316,9,0
+4,Hafij Badruzzaman,BOYS,Tajwar Y. Khan,MOHD. L.  KHAN,586  872  8182,1,WEEKEND
+4,Hafij Badruzzaman,BOYS,Hamim Haque,MOHD. HAQUE,313 414 6160,2,WEEKEND
+4,Hafij Badruzzaman,BOYS,Omar Zaman,OPU  ZAMAN,313  898  5118,3,WEEKEND
+4,Hafij Badruzzaman,BOYS,Ruhan Abedin,0,0,4,0
+4,Hafij Badruzzaman,BOYS,Sayhan Husen,M.  ALI  HUSEN,929 271 8114,5,EVENING
+4,Hafij Badruzzaman,BOYS,Tasdique Khan,HAMID  KHAN,313  312  6891,6,WEEKEND
+4,Hafij Badruzzaman,BOYS,Sadik A. Tawhid,NAZIR AHMED,313 930 3202,7,WEEKEND
+4,Hafij Badruzzaman,BOYS,Zamil Mozumder,AZMOL MOZUMDER,586 553 6572,8,WEEKEND
+4,Hafij Badruzzaman,BOYS,Saeed Rahman,ABDUR RAHMAN,313 914 8195,9,EVENING
+4,Hafij Badruzzaman,BOYS,Yunus Rahman,FAIZUR  RAHMAN,313  505  1957,10,WEEKEND
+4,Hafij Badruzzaman,BOYS,Ibrahim Rahman,HABIBUR  RAHMAN,313 455 2658,11,WEEKEND
+4,Hafij Badruzzaman,BOYS,Lukman Miah,MOSTAK  MIAH,313 320 6863,12,WEEKEND
+4,Hafij Badruzzaman,BOYS,Arham Majumder,FORID  MAJUMDER,586 354 6174,13,WEEKEND
+4,Hafij Badruzzaman,BOYS,Araf Majumder,FORID  MAJUMDER,586 354 6174,14,WEEKEND
+4,Hafij Badruzzaman,BOYS,Abdi Yusuf Ali,SHAFIQUL  ISLAM ,586 519 7001,15,EVENING
+4,Hafij Badruzzaman,BOYS,Mansif Koysor,MOHD. KHAIRUL ISLAM,313 661 0858,16,0
+1A,Wahidur M Rahman,BOYS,Radeen Noor,ROMAN  NOOR,313  615  6654,1,WEEKEND
+1A,Wahidur M Rahman,BOYS,Ahmed Ibrahim,RAKIB HUSAIN,313 327 6388,2,WEEKEND
+1A,Wahidur M Rahman,BOYS,IZYYAN AHMED,FOYSOL AHMED,313 788 0708,3,0
+1A,Wahidur M Rahman,BOYS,Ayaz Uddin,,,4,Evening
+1A,Wahidur M Rahman,BOYS,Saif Uddin,MUSLEH  UDDIN,313  529 1946,5,WEEKEND
+1A,Wahidur M Rahman,BOYS,Iffan Abrar,KAMRAN UDDIN,586 438 7194,6,0
+1A,Wahidur M Rahman,BOYS,Yusuf Zulkarnine,MOHD. SIRAJ ISLAM,313 423 2232,7,WEEKEND
+1A,Wahidur M Rahman,BOYS,Taaraz Lodi,ZAKIR LODI,586 495 9971,8,0
+1A,Wahidur M Rahman,BOYS,Tawfique Khan,HAMID  KHAN,313  312  6891,9,WEEKEND
+1A,Wahidur M Rahman,BOYS,Fahad Bhuiyan,NUR BHUIYAN,586 663 9314,10,WEEKEND
+1A,Wahidur M Rahman,BOYS,Saif Ahmed Sadi,ABUL KALAM AZAD,646 228 6895,11,0
+1A,Wahidur M Rahman,BOYS,Zeeshan Chowdhury,ISLAM UDDIN,586 438 9925,12,0
+1A,Wahidur M Rahman,BOYS,Fahim Abdullah,ABDULLAH  AL-FARUK,323 572 2238,13,EVENING
+1A,Wahidur M Rahman,BOYS,Adyan Ahmed Hasan,MOHD. HASAN,313 744 0046,14,WEEKEND
+1A,Wahidur M Rahman,BOYS,SIDHAN RASHID,RAYHAN  RASHID,347 679 2093,15,WEEKEND
+1A,Wahidur M Rahman,BOYS,SHARHAN RASHID,RAYHAN  RASHID,347 679 2093,16,WEEKEND
+1A,Wahidur M Rahman,BOYS,Aryan Khan,TOFAYEL KHAN,313 742 3584,17,WEEKEND
+1A,Wahidur M Rahman,BOYS,Md Tahmid,,,18,WEEKEND
+1B,Adannan Chowdhury,BOYS,Farhan Uddin,JAMAL  UDDIN,313 443 6329,1,WEEKEND
+1B,Adannan Chowdhury,BOYS,Sulaiman Ahmed,IFJAL  AHMED,586 498 6375,2,WEEKEND
+1B,Adannan Chowdhury,BOYS,Aasim Haque,,,3,0
+1B,Adannan Chowdhury,BOYS,Noah Siddique,RUHELA  SULTANA,224 703 2395,4,EVENING
+1B,Adannan Chowdhury,BOYS,Mahid Ahmed,NABUL  AHMED,347  879  1812,5,EVENING
+1B,Adannan Chowdhury,BOYS,Adiyat Haque,NAJMUL  HAQUE,973 870 1043,6,0
+1B,Adannan Chowdhury,BOYS,Ehaan Ahmed,RUMON AHMED,313 707 5599,7,0
+1B,Adannan Chowdhury,BOYS,Aryan Alamgir,ALAMGIR HUSSAIN,313 452 7306,8,WEEKEND
+1B,Adannan Chowdhury,BOYS,Afraz Alamgir,ALAMGIR HUSSAIN,313 452 7306,9,WEEKEND
+1B,Adannan Chowdhury,BOYS,"Yasir Abubakkar Chy,",FAZLUL  B. CHOUDHURY,313 782 1638,10,WEEKEND
+1B,Adannan Chowdhury,BOYS,Mohd. Yahya Khan,ZILLUR  RAHMAN,313 775 4810,11,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Adyan Islam,FAKHRUL ISLAM,313 603 1532,1,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Emaaz Tahir,MOHD. TAHIR,248 361 8881,2,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Minhaj Arham,MOHD. KASHEM,586 303 5531,3,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Rafi Uddin,MUSLEH  UDDIN,313  529 1946,4,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Abeed Khan,MOHD. NAZRUL KHAN,316 990 7462,5,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Rayan Ahmed,0,0,6,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Omar Ahmed,,,7,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Mahir Siraji,KAWSAR SIRAJI,313 290 7309,8,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Abdullah Ahmed,FAHIM AHMED,313  442 3799 ,9,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Zaidan Siddique,RASEL  SIDDIQUE,313 742 4415,10,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,Erfan Raheem,,,11,EVENING
+1C,Tahmidur R Kawsar,BOYS,Mohd Hasan,,,12,WEEKEND
+2,Raesa Chowdhury,GIRLS,Humaira Kazi,KAZI  SHAYEK  MIAH,313 312 3781,1,WEEKEND
+2,Raesa Chowdhury,GIRLS,Rubaiba Bint-Ali,M.  ALI  HUSEN,929 271 8114,2,Evening
+2,Raesa Chowdhury,GIRLS,Zunairah Jannat,TAHMIDUL  ISLAM,313 775 2598,3,WEEKEND
+2,Raesa Chowdhury,GIRLS,Mahira Hussain,DELWAR HUSSAIN,313 806 0384,4,WEEKEND
+2,Raesa Chowdhury,GIRLS,Zara Shah,ABU FARHAZ,313 346  3143,5,WEEKEND
+2,Raesa Chowdhury,GIRLS,Arisha Majumder,FORID  MAJUMDER,586 354 6174,6,WEEKEND
+2,Raesa Chowdhury,GIRLS,Faiza Shamsuddin,NEAZ  SHAMSUDDIN,646 479 4711,7,Evening
+2,Raesa Chowdhury,GIRLS,Naju Mustaque,MOHD. MUSTAQUE,313 258 6668,8,WEEKEND
+2,Raesa Chowdhury,GIRLS,Farmena Begum,LATE. FARUK MIAH,586 577 8988,9,WEEKEND
+2,Raesa Chowdhury,GIRLS,Sabria Lodi,ZAKIR LODI,586 495 9971,10,WEEKEND
+2,Raesa Chowdhury,GIRLS,Alveena Kabir,MOHD. KABIR,313 510 7879,11,WEEKEND
+2,Raesa Chowdhury,GIRLS,Zahra Islam,M. HELAL ISLAM,248 434 7251,12,WEEKEND
+2,Raesa Chowdhury,GIRLS,Shasmeen Islam,SHAFIQUL  ISLAM ,586 519 7001,13,Evening
+2,Raesa Chowdhury,GIRLS,Sabrina Toha,MOHD. ISLAM,213 374 6805,14,Evening
+2,Raesa Chowdhury,GIRLS,Sameeha Reza ,,,15,WEEKEND
+3,Asma Alsarrah,GIRLS,Abia Mahreen,KOYES  AHMED,313 685 2777,1,WEEKEND
+3,Asma Alsarrah,GIRLS,Mahiya Khan,SHARIF  KHAN,313 985 7249,2,WEEKEND
+3,Asma Alsarrah,GIRLS,Muntaqa Bint Ali,M. SHAJAHAN  ALI,404 665 6720,3,WEEKEND
+3,Asma Alsarrah,GIRLS,Inaaya Chowdhury,SHANU  CHOWDHURY,586 360 0337,4,WEEKEND
+3,Asma Alsarrah,GIRLS,Fatima Ahmed,NAZIR AHMED,313 930 3202,5,WEEKEND
+3,Asma Alsarrah,GIRLS,Mahima Khanom,M. HERON KHAN,313 455 1008,6,WEEKEND
+3,Asma Alsarrah,GIRLS,Alvina Fateh,ABUL  KASHEM  FATEH,313 485 2745,7,WEEKEND
+3,Asma Alsarrah,GIRLS,Adilah Ahmed,IFTEKHAR  AHMED,313 652 2925,8,WEEKEND
+3,Asma Alsarrah,GIRLS,Sabira Rahman,WALIUR  RAHMAN,313  598  6417,9,WEEKEND
+3,Asma Alsarrah,GIRLS,Areeba Khanom,MOHD. NAZRUL KHAN,316 990 7462,10,WEEKEND
+3,Asma Alsarrah,GIRLS,Afreen Islam,KHAIRUL  ISLAM,313  502  3339,11,WEEKEND
+3,Asma Alsarrah,GIRLS,Tayyaba Siddique,MAHBUB  SIDDIQUE ,224 703 2395,12,Evening
+3,Asma Alsarrah,GIRLS,Nafisa Ahad Fariha,ABDUL  AHAD,586 354 5713,13,WEEKEND
+3,Asma Alsarrah,GIRLS,Heyam Haque,MOHD. HAQUE,313 414 6160,14,WEEKEND
+3,Asma Alsarrah,GIRLS,Madeha Siraji,KAWSAR SIRAJI,313 290 7309,15,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Sabiha Rahman,WALIUR  RAHMAN,313  598  6417,1,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Farihah Islam,KAMRUL  ISLAM,313 303 6660,2,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Fariha Sultana,MOHD. A. EBAD,347 553 3962,3,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Wasefa Ahad Fabiha,ABDUL  AHAD,586 354 5713,4,Evening
+4,Fairoz Alsaidi,GIRLS,Ummayah Amin Luna,M. NURUL AMIN,313 455 2867,5,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Noushin Jannat Nuha,M. TOUHIDUR RAHMAN,313 281 4155,6,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Hafsa Islam,FAKHRUL ISLAM,313 603 1532,7,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Tahiyat Khan,HAMID  KHAN,313  312  6891,8,Evening
+4,Fairoz Alsaidi,GIRLS,Radiya Rahman,FAIZUR  RAHMAN,313  505  1957,9,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Nadia Ali,ASABOR  ALI,313 603 0851,10,WEEKEND
+4,Fairoz Alsaidi,GIRLS,Nafisa Abdullah,M. ABDULLAH  KAFI,248 315 9589,11,Evening
+1A,Umaiza Hussain,GIRLS,Zeemal Tahir,MOHD. TAHIR,248 361 8881,1,WEEKEND
+1A,Umaiza Hussain,GIRLS,Sabiha Lodi,ZAKIR LODI,586 495 9971,2,WEEKEND
+1A,Umaiza Hussain,GIRLS,Tabassum Jannat,M. ABDUL  HAKIM (muhon),586  277  5882,3,WEEKEND
+1A,Umaiza Hussain,GIRLS,Nurat Hussain,HUSSAIN TAREQ,313 564 7414,4,WEEKEND
+1A,Umaiza Hussain,GIRLS,Amina Abedin,MOHD. HELAL  ABEDIN,586 343 3823,5,WEEKEND
+1A,Umaiza Hussain,GIRLS,Zara Zaman,OPU  ZAMAN,313  898  5118,6,WEEKEND
+1A,Umaiza Hussain,GIRLS,Samara Hussain,SYED  AYAZ HUSSAIN,347 493 0271,7,0
+1A,Umaiza Hussain,GIRLS,Noushin Islam,KHAIRUL  ISLAM,313  502  3339,8,WEEKEND
+1A,Umaiza Hussain,GIRLS,Tayiba Sufia Khan,MIZANUR RAHMAN KHAN,313 775 0872,9,Evening
+1A,Umaiza Hussain,GIRLS,Jana Al-Jannat Uddin,M. JAMAL  UDDIN,818 946 4952,10,WEEKEND
+1A,Umaiza Hussain,GIRLS,ILLEYIN AHMED,FOYSOL AHMED,313 788 0708,11,0
+1B,Fahmidah Aniqa,GIRLS,Samiha Ahmed,MOHD. SUHEL AHMED,313 240 2881,1,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Tasfia Jannat,M. ABDUL  HAKIM (muhon),586  277  5882,2,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Sabrina Islam,M. HELAL ISLAM,248 434 7251,3,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Israa Ahmed,ZAKIR  AHMED,248 479 6254,4,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Samya Mozumder,AZMOL MOZUMDER,586 553 6572,5,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Tasnia Akbar,MOHD. RASHED AKBAR,586 604 4272,6,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Sawdah Rahman,SIDDIKUR  RAHMAN, 818 593 9441,7,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Jannat Rihanna,MIZAN  RAHMAN,313 768 8330,8,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,Amina Alim Zaynab,ABDUL ALIM TUSHAR,586 366 5525,9,0
+1B,Fahmidah Aniqa,GIRLS,Sonia Begum,MOHD. DULAL MIAH,313 598 4347,10,WEEKEND
+1C,Habiba Islam,GIRLS,Manha Bint Ali,M. SHAJAHAN  ALI,404 665 6720,1,WEEKEND
+1C,Habiba Islam,GIRLS,Marowa Hakim,ABDUL  HAKIM,586 457 7859,2,WEEKEND
+1C,Habiba Islam,GIRLS,Faiza Jannat Anila,M. GIASH  UDDIN,586  216 1918,3,WEEKEND
+1C,Habiba Islam,GIRLS,Zaina Shah,ABU FARHAZ,313 346  3143,4,WEEKEND
+1C,Habiba Islam,GIRLS,Simrah Salim,SALIM  AHMED,917 769 8123,5,WEEKEND
+1C,Habiba Islam,GIRLS,"Samarah A. Chy,","SUBIN AHMED  CHY,",203 385 2703,6,WEEKEND
+1C,Habiba Islam,GIRLS,IFFAT AHMED(girl),SHABBIR AHMED,313 455 9140,7,WEEKEND
+1C,Habiba Islam,GIRLS,Nuzairah Chowdhury,"MUHIBUL HASAN CHY,",586 733 0056,8,WEEKEND
+1C,Habiba Islam,GIRLS,"Alisha Zaman Chy,","OHIDUZZAMAN  CHY,",313  455 2514,9,WEEKEND
+1C,Habiba Islam,GIRLS,Aisha Rahma,MOHD. AMIN,586 222 1281,10,WEEKEND
+1C,Habiba Islam,GIRLS,Mahira Mehreen,RAKIB HUSAIN,313 327 6388,11,WEEKEND
+1C,Habiba Islam,GIRLS,Nazifa Jannat,M. TOUHIDUR RAHMAN,313 281 4155,12,WEEKEND
+1C,Habiba Islam,GIRLS,Nurat Salahuddin,MOHD. SALAHUDDIN,313 718 5345,13,WEEKEND
+1C,Habiba Islam,GIRLS,Aleesha Hasan,MOHD. HASAN,313 744 0046,14,WEEKEND
+1C,Habiba Islam,GIRLS,Ameerah Hussain,KAWSAR  HUSSAIN,313 522 9623,15,WEEKEND
+1A,Wahidur M Rahman,BOYS,ALI AHMED,ALI  AKBOR,313  455  2075,0,WEEKEND
+1A,Umaiza Hussain,GIRLS,WAHEEDA ADIBA,ALI  AKBOR,313  455  2075,0,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,ANAYA S. HUDA,SHAMSUL  HUDA,586  765  3719,0,WEEKEND
+1B,Adannan Chowdhury,BOYS,SAFWAT HAQUE,M. FAZLUL  HAQUE,586  457  5646,0,WEEKEND
+3,Numaan Chowdhury,BOYS,SAMYN HAQUE,M. FAZLUL  HAQUE,586  457  5646,0,WEEKEND
+1A,Wahidur M Rahman,BOYS,SIDRAT HAQUE,M. FAZLUL  HAQUE,586  457  5646,0,WEEKEND
+2,MD Abdur Rashid,BOYS,TAYAF HAQUE,M. FAZLUL  HAQUE,586  457  5646,0,WEEKEND
+1C,Habiba Islam,GIRLS,ALIZA LASKER,REAJUL  LASKER,480  338  5056,0,WEEKEND
+1C,Tahmidur R Kawsar,BOYS,TAWFIQ UDDIN,SOIF  UDDIN,586  457  5821,0,WEEKEND
+0,Data unavailable,BOYS,ARSHAN SUBHAN,NAZMIN  SUBHAN,818  918  1527,0,EVENING
+0,Data unavailable,BOYS,ZAYAAN SUBHAN,NAZMIN  SUBHAN,818  918  1527,0,EVENING
+0,Data unavailable,0,MAIMUNA MARIYAM,"ABUL  ALA  CHY,",313 603 2039,0,0
+1C,Tahmidur R Kawsar,BOYS,MOHAMMAD HASAN,MOHD. HELAL  ABEDIN,586 343 3823,0,WEEKEND
+1B,Adannan Chowdhury,BOYS,ISRAAR AHMED,MINHAJ  AHMED,313  454  7974,0,WEEKEND
+1A,Umaiza Hussain,GIRLS,TAIBA TABASSUM ZOEY,MOHD. KHADIR  MIAH,313 782 2835,0,WEEKEND
+0,Data unavailable,0,JAIMA TALUKDHAR MIAH,MOHD. LILU  MIAH,957 277  1117,0,0
+1C,Tahmidur R Kawsar,BOYS,ADI CHOUDHURY,M. RAZA  CHOUDHURY,313 502 8986,0,WEEKEND
+1C,Habiba Islam,GIRLS,SARA CHOUDHURY,M. RAZA  CHOUDHURY,313 502 8986,0,WEEKEND
+0,Data unavailable,BOYS,RADEE AHMED,KOYES  AHMED,313 685 2777,0,EVENING
+0,Data unavailable,BOYS,IFFED AHMED(boy),KABIR AHMED,313 603 6399,0,EVENING
+3,Asma Alsarrah,GIRLS,MARYAM RAHMAN,HABIBUR  RAHMAN,313 455 2658,0,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,IQRA UDDIN,ABRAR  AHMED,586 438 8286,0,WEEKEND
+0,Data unavailable,GIRLS,ANOUSHA HUDA,SHADAT  HUDA,313  721 9066 ,0,Evening
+0,Data unavailable,BOYS,IRFAN HUDA,SHADAT  HUDA,313  721 9066 ,0,EVENING
+0,Data unavailable,GIRLS,WAFIQAH HUDA,SHADAT  HUDA,313  721 9066 ,0,Evening
+0,Data unavailable,0,ANAYA AHMED,MASUM  AHMED,313 718 7019,0,0
+4,Fairoz Alsaidi,GIRLS,NAJIFA SUAYEB,MOHD. SUAYEB ,313 603 1402,0,WEEKEND
+4,Fairoz Alsaidi,GIRLS,SHABIRA NUSRAT,KAZI  SHAYEK  MIAH,313 312 3781,0,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,NABA ISLAM,MOHD. SHIHAB ISLAM,313 782 2416,0,WEEKEND
+2,Raesa Chowdhury,GIRLS,ALIFA AHMED ELHAM,ABDUL KALAM,313 707 1965,0,WEEKEND
+3,Asma Alsarrah,GIRLS,KAIFA AHMED ESHAL,ABDUL KALAM,313 707 1965,0,WEEKEND
+0,Data unavailable,BOYS,ENAYATUR R. TANWIR,HAMIDUR  RAHMAN,313  303  3460,0,EVENING
+0,Data unavailable,BOYS,HAMIZ ALHAN,MAHER  SHAMIM,703 677 5533,0,EVENING
+4,Fairoz Alsaidi,GIRLS,KARIMA UDDIN,MOHD. QUTUB UDDIN,586 237 9852,0,WEEKEND
+3,Numaan Chowdhury,BOYS,AYYUB ALAM,MOHD. SAIFUL ALAM,929 418 9461,0,WEEKEND
+0,Data unavailable,GIRLS,ADIBA AFRIN ZAHRA,SAFAT  AHMED,586  722  4348,0,Evening
+0,Data unavailable,GIRLS,NABILA SULTANA,MOHD. A. EBAD,347 553 3962,0,Evening
+0,Data unavailable,BOYS,AMAN ISLAM,SHAIFUL ISLAM,313 723 8562,0,EVENING
+0,Data unavailable,BOYS,SHUAIB ISLAM,SHAIFUL ISLAM,313 723 8562,0,EVENING
+0,Data unavailable,GIRLS,MUNTAHA CHOWDHURY,JAKARIA CHOWDHURY,248 228 6740,0,Evening
+0,Data unavailable,BOYS,SHAKIR KHAN,MAHFUJ  CHOWDHURY,313 424 0387,0,EVENING
+0,Data unavailable,BOYS,SHAMIR KHAN,MAHFUJ  CHOWDHURY,313 424 0387,0,EVENING
+0,Data unavailable,GIRLS,SUHAIBA SUFIA KHAN,MIZANUR RAHMAN KHAN,313 775 0872,0,Evening
+0,Data unavailable,0,MUKTADIR HAQUE,NURUL HAQUE,313 707 4736,0,0
+2,Raesa Chowdhury,girls,HAFSA ALAM,SAYFUL  ALAM,248 922 8727,0,WEEKEND
+3,Asma Alsarrah,girls,NISHAT KHAJA,KHAJA  NUR AHMED,586 625 9929,0,WEEKEND
+1A,Wahidur M Rahman,BOYS,WADEE A. SYED,SYED  M. AHMED,313 377 7491,0,WEEKEND
+3,Numaan Chowdhury,BOYS,"RAQIBUL CHY,",SAIFUL CHOWDHURY,313 926 9261,0,WEEKEND
+4,Hafij Badruzzaman,BOYS,"REJWANUL CHY,",SAIFUL CHOWDHURY,313 926 9261,0,WEEKEND
+0,Data unavailable,0,FARDEEN CHOWDHURY,"FAISAL  NOOR CHY,",313  707  2375,0,0
+0,Data unavailable,0,FARHEEN CHOWDHURY,"FAISAL  NOOR CHY,",313  707  2375,0,0
+0,Data unavailable,0,RADMAN NOOR,ROMAN  NOOR,313  615  6654,0,0
+0,Data unavailable,GIRLS,TANZILA ABDULLAH,RUHUL ABDULLAH,586 690 5467,0,Evening
+0,Data unavailable,GIRLS,ZAHRA SYEDA AMATULLAH,SYED ABDULLAH HOSSAIN,929 393 0004,0,Evening
+2,Raesa Chowdhury,girls,UMAIR HUSSAIN,KAWSAR  HUSSAIN,313 522 9623,0,WEEKEND
+0,Data unavailable,0,RUHAMA NOORAH,MOHD. S. ISLAM,313 423 2232,0,0
+0,Data unavailable,0,AARYAN RAZZAK,M. ABDUR RAZZAK,313 707 9294,0,0
+0,Data unavailable,BOYS,MOHD. TAWAF AHMED,SUMON  AHMED,347 613 2874,0,EVENING
+0,Data unavailable,GIRLS,AYANA AHMED,0,0,0,Evening
+1A,Wahidur M Rahman,BOYS,ISHAAQ HUSSAIN,ALI HUSSAIN,586 489 0614,0,WEEKEND
+1A,Umaiza Hussain,GIRLS,MARYAM SHAMIM,ALI HUSSAIN,586 489 0614,0,WEEKEND
+1A,Wahidur M Rahman,BOYS,MIKHAIL SHAMIM,ALI HUSSAIN,586 489 0614,0,WEEKEND
+1A,Wahidur M Rahman,BOYS,IRFAN RAHIM,RAKIB HUSAIN,313 327 6388,0,WEEKEND
+1B,Adannan Chowdhury,BOYS,EHAAN HUSSAIN,KAMAL  HUSSAIN,313  312  6688,0,WEEKEND
+0,Data unavailable,GIRLS,MADIHA INAAYA,SHAKIR  AHMED,586 625 9458,0,Evening
+0,Data unavailable,BOYS,MIDAD ADIYAN,SHAKIR  AHMED,586 625 9458,0,EVENING
+1C,Tahmidur R Kawsar,BOYS,ISHAT AHMED,EFTIKHAR  AHMED(SHAMIM),347 536 8252,0,WEEKEND
+0,Data unavailable,GIRLS,ARIBAH CHOWDHURY,YEASIR CHOWDHURY,586 438 6719,0,Evening
+3,Numaan Chowdhury,BOYS,"LEBAN M. CHY,",NURUZZAMAN  CHOUDHURY,586 859 3273,0,WEEKEND
+0,Data unavailable,BOYS,"NURUL HUDA CHY, (LABIB)",NURUZZAMAN  CHOUDHURY,586 859 3273,0,EVENING
+1A,Umaiza Hussain,GIRLS,ALISHA RAHMAN,AFZALUR  RAHMAN,4104,0,WEEKEND
+2,Raesa Chowdhury,girls,AYSHA RAHMAN,AFZALUR  RAHMAN,313 455 4011,0,WEEKEND
+4,Fairoz Alsaidi,GIRLS,TAHIYA ALI,KHALED  ALI,313 985 2776,0,WEEKEND
+1B,Fahmidah Aniqa,GIRLS,TASFIA HUSSAIN,KHALID  HUSSAIN,586  244  3304,0,WEEKEND
+1A,Wahidur M Rahman,BOYS,ABDULLAH CHOWDHURY,MOMNUR  CHOWDHURY,586  344 6397,0,WEEKEND
+1A,Umaiza Hussain,GIRLS,SAARA AHMED,RASHID  AHMED,862 282 5241,0,WEEKEND
+1A,Umaiza Hussain,GIRLS,SAIBA JANNAT SIDDIQI,SAYEM  SIDDIQI ,586 344 6953,0,WEEKEND
+0,Data unavailable,BOYS,ARSHAN RAHMAN,AHMEDUR  RAHMAN,212 470 5523,0,EVENING
+0,Data unavailable,GIRLS,AYAANA RAHMAN,AHMEDUR  RAHMAN,212 470 5523,0,Evening
+0,Data unavailable,BOYS,TAHMID UDDIN,AMIR  UDDIN,313 455 6290,0,EVENING
+0,Data unavailable,BOYS,TAHSIN UDDIN,AMIR  UDDIN,313 455 6290,0,EVENING
+0,Data unavailable,BOYS,TAMIM UDDIN,AMIR  UDDIN,313 455 6290,0,EVENING
+1A,Wahidur M Rahman,BOYS,ADEEB SHORIF,AHMED ALOM SHORIF,313 603 9897,0,WEEKEND
+0,Data unavailable,BOYS,MOHD. FARHAN,MOHD. ISLAM,213 374 6805,0,EVENING
+0,Data unavailable,GIRLS,MARIA R. RAHMAN,M. ATAUR  RAHMAN,248 525 9841,0,Evening
+0,Data unavailable,GIRLS,ALINA SIMI,NAZIM UDDIN,248 825 9977,0,Evening
+0,Data unavailable,0,ONONNA RIMI,NAZIM UDDIN,248 825 9977,0,0
+0,Data unavailable,BOYS,YOUSUF NAZIM,NAZIM UDDIN,248 825 9977,0,EVENING
+4,Fairoz Alsaidi,girls,MEHREEN MARYAM HAKIM,ABDUL HAKIM,313 974 1228,0,WEEKEND
+0,Data unavailable,0,ASIM HUSSAIN,SYED  AYAZ HUSSAIN,347 493 0271,0,0
+0,Data unavailable,0,ZARIYAT HAQUE,NAJMUL  HAQUE,973 870 1043,0,0
+0,Data unavailable,0,MOHAMMED AL-HARIRI,YUSEF  AL-HARIRI,313 318 4199,0,0
+0,Data unavailable,0,M. TAHMID HUSSAIN,AULAD  HUSSAIN,213 249 6829,0,0
+0,Data unavailable,0,ZEESHAN KHAN,MOHD. JUNED KHAN,929 408 6536,0,0
+0,Data unavailable,0,AMEERAH ALISHA,ANISUR RAHMAN,586 457 2462,0,0
+0,Data unavailable,0,TASNIM CHOUDHURY,MUHIM  CHOUDHURY,586 360 5727,0,0
+1A,Wahidur M Rahman,BOYS,IFFAT ABRAR,0,0,0,WEEKEND
+0,Data unavailable,GIRLS,ALIFA ESHAL,0,0,0,Evening
+0,Data unavailable,GIRLS,KAIFA ELHAM,0,0,0,Evening
+`;
+
+        let studentsData = []; // Global variable to hold parsed student data
+
+        /**
+         * Parses CSV student data to extract relevant fields (Level, Teacher, Gender, Name, Parents Name, Contact Info, RN, Department).
+         * This function expects the first line of the rawData to be a header row.
+         * @param {string} rawData - The raw CSV text data containing student information.
+         * @returns {Array<Object>} An array of student objects with parsed fields.
+         */
+        function parseStudentData(rawData) {
+            const lines = rawData.trim().split('\n');
+            if (lines.length === 0) {
+                console.error("No data found in rawData.");
+                return [];
+            }
+
+            // Extract headers from the first line and clean them
+            const headers = lines[0].split(',').map(header => header.trim().replace(/"/g, ''));
+            console.log("Parsed Headers:", headers);
+
+            // Define expected headers for validation and mapping
+            const expectedHeaders = ['LEVEL', 'TEACHER', 'GENDER', 'NAME', 'PARENTS NAME', 'CONTACT INFO', 'RN', 'Department'];
+
+            // Validate if all expected headers are present
+            const missingHeaders = expectedHeaders.filter(header => !headers.includes(header));
+            if (missingHeaders.length > 0) {
+                console.error(`Missing expected headers: ${missingHeaders.join(', ')}. Please ensure your CSV has these columns.`);
+                return [];
+            }
+
+            const students = [];
+            // Process data rows starting from the second line
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line === '') continue; // Skip empty lines
+
+                // Split the line by comma, handling quoted fields
+                // This regex handles commas inside double quotes
+                const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+
+                if (values.length !== headers.length) {
+                    console.warn(`Skipping malformed line (column count mismatch): ${line}`);
+                    continue;
+                }
+
+                const student = {};
+                for (let j = 0; j < headers.length; j++) {
+                    const header = headers[j];
+                    let value = values[j].trim();
+                    // Remove quotes from quoted fields
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.substring(1, value.length - 1);
+                    }
+                    student[header] = value;
+                }
+
+                // Normalize department, level, and gender to uppercase for consistent counting
+                const normalizedDepartment = student['Department'] ? student['Department'].trim().toUpperCase() : '';
+                const normalizedLevel = student.LEVEL ? student.LEVEL.trim().toUpperCase() : '';
+                const normalizedGender = student.GENDER ? student.GENDER.trim().toUpperCase() : '';
+
+
+                // Only push student if it has at least the core data for charts
+                if (normalizedLevel && student.TEACHER && normalizedGender) {
+                    students.push({
+                        level: normalizedLevel, // Use normalized level
+                        teacher: student.TEACHER,
+                        gender: normalizedGender, // Use normalized gender
+                        name: student.NAME || '', // Optional fields
+                        parentsName: student['PARENTS NAME'] || '',
+                        contactInfo: student['CONTACT INFO'] || '',
+                        rn: student.RN || '', // Add RN field
+                        department: (normalizedDepartment !== '0') ? normalizedDepartment : '' // Normalize '0' to empty string
+                    });
+                } else {
+                    console.warn("Skipping line due to missing core data (LEVEL, TEACHER, or GENDER):", student);
+                }
+            }
+            console.log("Total Parsed Students:", students.length);
+            return students;
+        }
+
+        // Chart instances storage
+        let levelChartInstance, teacherChartInstance, levelGenderChartInstance, departmentChartInstance, genderChartInstance, regularIrregularChartInstance;
+
+        /**
+         * Renders all charts based on the provided student data.
+         * @param {Array<Object>} studentsData - The array of parsed student objects.
+         */
+        function renderCharts(studentsData) {
+            // Calculate data for charts
+            const levelDistribution = {};
+            const teacherDistribution = {};
+            const levelGenderDistribution = {};
+            const departmentDistribution = {};
+            const genderDistribution = { BOYS: 0, GIRLS: 0 };
+            let regularStudentsCount = 0;
+            let irregularStudentsCount = 0;
+
+            studentsData.forEach(student => {
+                levelDistribution[student.level] = (levelDistribution[student.level] || 0) + 1;
+                teacherDistribution[student.teacher] = (teacherDistribution[student.teacher] || 0) + 1;
+
+                if (!levelGenderDistribution[student.level]) {
+                    levelGenderDistribution[student.level] = { BOYS: 0, GIRLS: 0 };
+                }
+                levelGenderDistribution[student.level][student.gender] = (levelGenderDistribution[student.level][student.gender] || 0) + 1;
+
+                if (student.department && student.department !== '') {
+                    departmentDistribution[student.department] = (departmentDistribution[student.department] || 0) + 1;
+                }
+
+                if (student.gender === 'BOYS' || student.gender === 'MALE') {
+                    genderDistribution['BOYS']++;
+                } else if (student.gender === 'GIRLS' || student.gender === 'FEMALE') {
+                    genderDistribution['GIRLS']++;
+                }
+
+                const rnValue = student.rn.trim();
+                if (rnValue === '' || rnValue === '0' || rnValue === 'Data unavailable') {
+                    irregularStudentsCount++;
+                } else {
+                    regularStudentsCount++;
+                }
+            });
+
+            // Prepare data for Chart.js
+            const levelLabels = Object.keys(levelDistribution).sort((a, b) => {
+                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            const levelData = levelLabels.map(label => levelDistribution[label]);
+
+            const teacherLabels = Object.keys(teacherDistribution).sort();
+            const teacherData = teacherLabels.map(label => teacherDistribution[label]);
+
+            const levelGenderLabels = Object.keys(levelGenderDistribution).sort((a, b) => {
+                const order = ['0', '1A', '1B', '1C', '2', '3', '4'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            const levelGenderBoysData = levelGenderLabels.map(label => levelGenderDistribution[label].BOYS || 0);
+            const levelGenderGirlsData = levelGenderLabels.map(label => levelGenderDistribution[label].GIRLS || 0);
+
+            const departmentLabels = Object.keys(departmentDistribution).sort();
+            const departmentData = departmentLabels.map(label => departmentDistribution[label]);
+
+            const genderLabels = ['Boys', 'Girls'];
+            const genderData = [genderDistribution.BOYS, genderDistribution.GIRLS];
+
+            const regularIrregularLabels = ['Regular Students', 'Irregular Students'];
+            const regularIrregularData = [regularStudentsCount, irregularStudentsCount];
+
+            // Update Key Metrics
+            document.getElementById('totalStudents').textContent = studentsData.length;
+            document.getElementById('totalTeachers').textContent = teacherLabels.length;
+            document.getElementById('irregularStudents').textContent = irregularStudentsCount;
+
+            // Helper function to create chart options with datalabels
+            function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}) {
+                return {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: titleText ? true : false,
+                            text: titleText
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                weight: 'bold'
+                            },
+                            formatter: (value, context) => {
+                                if (showPercentageOnPieDoughnut && (context.chart.config.type === 'pie' || context.chart.config.type === 'doughnut')) {
+                                    const sum = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = (sum > 0) ? (value * 100 / sum).toFixed(1) + '%' : '0%';
+                                    return percentage;
+                                }
+                                return value;
+                            }
+                        },
+                        ...pluginsOptions
+                    },
+                    scales: scalesOptions
+                };
+            }
+
+            // Destroy existing chart instances before creating new ones to prevent memory leaks and conflicts
+            if (levelChartInstance) levelChartInstance.destroy();
+            if (teacherChartInstance) teacherChartInstance.destroy();
+            if (levelGenderChartInstance) levelGenderChartInstance.destroy();
+            if (departmentChartInstance) departmentChartInstance.destroy();
+            if (genderChartInstance) genderChartInstance.destroy();
+            if (regularIrregularChartInstance) regularIrregularChartInstance.destroy();
+
+            // Level Distribution Chart
+            const levelCtx = document.getElementById('levelChart').getContext('2d');
+            levelChartInstance = new Chart(levelCtx, {
+                type: 'pie',
+                data: {
+                    labels: levelLabels,
+                    datasets: [{
+                        data: levelData,
+                        backgroundColor: [
+                            '#6366F1', '#818CF8', '#A5B4FC', '#C7D2FE',
+                            '#E0E7FF', '#F3F4F6', '#A78BFA'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: getChartOptions('Student Level Distribution')
+            });
+
+            // Teacher Distribution Chart
+            const teacherCtx = document.getElementById('teacherChart').getContext('2d');
+            teacherChartInstance = new Chart(teacherCtx, {
+                type: 'bar',
+                data: {
+                    labels: teacherLabels,
+                    datasets: [{
+                        label: 'Number of Students',
+                        data: teacherData,
+                        backgroundColor: '#10B981',
+                        borderColor: '#059669',
+                        borderWidth: 1
+                    }]
+                },
+                options: getChartOptions(
+                    'Student Distribution by Teacher',
+                    { legend: { display: false } },
+                    {
+                        x: { beginAtZero: true, title: { display: true, text: 'Number of Students' } },
+                        y: { title: { display: true, text: 'Teacher' } }
+                    }
+                )
+            });
+
+            // Level by Gender Chart
+            const levelGenderCtx = document.getElementById('levelGenderChart').getContext('2d');
+            levelGenderChartInstance = new Chart(levelGenderCtx, {
+                type: 'bar',
+                data: {
+                    labels: levelGenderLabels,
+                    datasets: [
+                        {
+                            label: 'Boys',
+                            data: levelGenderBoysData,
+                            backgroundColor: '#4F46E5'
+                        },
+                        {
+                            label: 'Girls',
+                            data: levelGenderGirlsData,
+                            backgroundColor: '#EC4899'
+                        }
+                    ]
+                },
+                options: getChartOptions(
+                    'Level by Gender Distribution',
+                    {},
+                    {
+                        x: { stacked: false, title: { display: true, text: 'Level' } },
+                        y: { stacked: false, beginAtZero: true, title: { display: true, text: 'Number of Students' } }
+                    }
+                )
+            });
+
+            // Department Distribution Chart
+            const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+            departmentChartInstance = new Chart(departmentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: departmentLabels,
+                    datasets: [{
+                        data: departmentData,
+                        backgroundColor: [
+                            '#F59E0B', '#6366F1', '#10B981', '#EF4444'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: getChartOptions('Department Distribution')
+            });
+
+            // Gender Distribution Chart
+            const genderCtx = document.getElementById('genderChart').getContext('2d');
+            genderChartInstance = new Chart(genderCtx, {
+                type: 'pie',
+                data: {
+                    labels: genderLabels,
+                    datasets: [{
+                        data: genderData,
+                        backgroundColor: [
+                            '#3B82F6',
+                            '#EC4899'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: getChartOptions('Overall Gender Distribution')
+            });
+
+            // Regular vs. Irregular Students Chart
+            const regularIrregularCtx = document.getElementById('regularIrregularChart').getContext('2d');
+            regularIrregularChartInstance = new Chart(regularIrregularCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: regularIrregularLabels,
+                    datasets: [{
+                        data: regularIrregularData,
+                        backgroundColor: [
+                            '#22C55E',
+                            '#EF4444'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: getChartOptions('Regular vs. Irregular Students')
+            });
+        }
+
+        /**
+         * Saves the provided raw CSV data string to Firestore.
+         * @param {string} data - The raw CSV data string to save.
+         */
+        async function saveDataToFirestore(data) {
+            showLoading(true);
+            displayMessage('Saving data to the cloud...', 'orange');
+            try {
+                await setDoc(studentDataDocRef, { csvData: data, timestamp: new Date().toISOString() });
+                displayMessage('Data saved successfully!', 'green');
+            } catch (error) {
+                console.error("Error writing document:", error);
+                displayMessage('Error saving data. Please try again.', 'red');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        /**
+         * Sets up a real-time listener for student data from Firestore.
+         * This function is called after successful authentication.
+         */
+        function setupFirestoreListener() {
+            showLoading(true);
+            displayMessage('Fetching latest data...', 'gray');
+            onSnapshot(studentDataDocRef, (docSnap) => {
+                showLoading(false);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.csvData) {
+                        currentRawData = data.csvData;
+                        studentsData = parseStudentData(currentRawData);
+                        if (studentsData.length > 0) {
+                            renderCharts(studentsData);
+                            displayMessage('Data updated in real-time!', 'green');
+                        } else {
+                            displayMessage('No valid student data found in the cloud document.', 'red');
+                        }
+                    } else {
+                        // Document exists but has no csvData, possibly a new document
+                        displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
+                        // Render with empty data if no CSV data is found
+                        renderCharts([]);
+                    }
+                } else {
+                    // Document does not exist, it's the first time
+                    displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
+                    // Render with empty data if document doesn't exist
+                    renderCharts([]);
+                }
+            }, (error) => {
+                showLoading(false);
+                console.error("Error listening to document:", error);
+                displayMessage('Error fetching real-time updates. Check console.', 'red');
+            });
+        }
+
+        /**
+         * Handles Firebase authentication and then sets up the Firestore listener.
+         */
+        async function authenticateAndLoad() {
+            showLoading(true);
+            displayMessage('Authenticating...', 'gray');
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                currentUserId = auth.currentUser?.uid || crypto.randomUUID();
+                document.getElementById('userIdDisplay').textContent = currentUserId;
+                console.log("Authenticated as:", currentUserId);
+                setupFirestoreListener(); // Setup listener after auth
+            } catch (error) {
+                console.error("Firebase authentication failed:", error);
+                displayMessage("Authentication failed. Data might not be persistent.", 'red');
+                showLoading(false);
+            }
+        }
+
+        // Event listener for file input change
+        document.getElementById('loadCsvButton').addEventListener('click', () => {
+            const fileInput = document.getElementById('csvFileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                if (file.type !== 'text/csv') {
+                    displayMessage('Please upload a CSV file.', 'red');
+                    return;
+                }
+
+                displayMessage('Reading file...', 'orange');
+                showLoading(true);
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const newRawData = e.target.result;
+                        const parsedStudents = parseStudentData(newRawData);
+                        if (parsedStudents.length > 0) {
+                            // Save the new data to Firestore
+                            await saveDataToFirestore(newRawData);
+                            // The onSnapshot listener will then trigger renderCharts with the new data
+                        } else {
+                            displayMessage('No valid student data found in the CSV. Not saving.', 'red');
+                        }
+                    } catch (error) {
+                        console.error("Error processing CSV:", error);
+                        displayMessage('Error processing file. Please check console for details.', 'red');
+                    } finally {
+                        showLoading(false);
+                    }
+                };
+                reader.onerror = () => {
+                    displayMessage('Error reading file.', 'red');
+                    showLoading(false);
+                };
+                reader.readAsText(file);
+            } else {
+                displayMessage('Please select a CSV file to upload.', 'red');
+            }
+        });
+
+        // Parse the initial embedded data and render charts on load,
+        // then initiate Firebase authentication and real-time listening.
+        // This ensures some data is visible even before Firestore loads.
+        studentsData = parseStudentData(currentRawData);
+        renderCharts(studentsData);
+        authenticateAndLoad();
+
+        // Ensure the initial message is cleared or set appropriately after initial load
+        // This is handled by setupFirestoreListener or authentication status
+    </script>
+</body>
+</html>
