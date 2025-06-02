@@ -65,6 +65,7 @@ let currentRawData = `LEVEL,TEACHER,GENDER,NAME,PARENTS NAME,CONTACT INFO,RN,Dep
 `;
 
 let studentsData = []; // Global variable to hold parsed student data
+let familyGroupingsData = []; // Global variable for family data
 
 /**
  * Displays a message to the user.
@@ -141,9 +142,21 @@ function parseStudentData(rawData) {
         const line = lines[i].trim();
         if (line === '') continue;
 
-        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+        // Use a more robust regex to handle commas within quoted fields
+        const values = line.match(/(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^,]*))(?:,|$)/g) || [];
+        const processedValues = values.map(val => {
+            if (val.startsWith('"') && val.endsWith(',')) {
+                return val.slice(1, -2).replace(/""/g, '"'); // Remove quotes and trailing comma, handle escaped quotes
+            } else if (val.startsWith('"') && val.endsWith('"')) {
+                 return val.slice(1, -1).replace(/""/g, '"'); // Remove quotes, handle escaped quotes
+            } else if (val.endsWith(',')) {
+                return val.slice(0, -1).trim(); // Remove trailing comma
+            }
+            return val.trim();
+        });
 
-        if (values.length !== headers.length) {
+
+        if (processedValues.length !== headers.length) {
             console.warn(`Skipping malformed line (column count mismatch): ${line}`);
             continue;
         }
@@ -151,11 +164,7 @@ function parseStudentData(rawData) {
         const student = {};
         for (let j = 0; j < headers.length; j++) {
             const header = headers[j];
-            let value = values[j].trim();
-            if (value.startsWith('"') && value.endsWith('"')) {
-                value = value.substring(1, value.length - 1);
-            }
-            student[header] = value;
+            student[header] = processedValues[j];
         }
 
         // Normalize data for consistency
@@ -166,6 +175,7 @@ function parseStudentData(rawData) {
 
         if (normalizedLevel && student.TEACHER && normalizedGender && normalizedParentName) {
             students.push({
+                id: i, // Assign a simple ID for table display
                 level: normalizedLevel,
                 teacher: student.TEACHER,
                 gender: (normalizedGender === 'BOYS' || normalizedGender === 'MALE') ? 'BOYS' : ((normalizedGender === 'GIRLS' || normalizedGender === 'FEMALE') ? 'GIRLS' : 'UNKNOWN'),
@@ -202,6 +212,7 @@ function renderDashboard(studentsData) {
     const levelGenderDistribution = {};
     const departmentDistribution = {};
     const genderDistribution = { BOYS: 0, GIRLS: 0 };
+    const familyGroups = {}; // For family groupings and top parents
 
     studentsData.forEach(student => {
         // Gender counts
@@ -239,7 +250,34 @@ function renderDashboard(studentsData) {
         if (rnValue === '' || rnValue === '0' || rnValue.toLowerCase() === 'data unavailable') {
             irregularStudentsCount++;
         }
+
+        // Family Groupings
+        if (student.parentsName && student.parentsName !== '0' && student.parentsName.toLowerCase() !== 'data unavailable') {
+            if (!familyGroups[student.parentsName]) {
+                familyGroups[student.parentsName] = {
+                    contactInfo: student.contactInfo,
+                    children: [],
+                    boys: 0,
+                    girls: 0
+                };
+            }
+            familyGroups[student.parentsName].children.push({ name: student.name, gender: student.gender });
+            if (student.gender === 'BOYS') {
+                familyGroups[student.parentsName].boys++;
+            } else if (student.gender === 'GIRLS') {
+                familyGroups[student.parentsName].girls++;
+            }
+        }
     });
+
+    // Convert familyGroups object to an array for easier sorting and display
+    familyGroupingsData = Object.keys(familyGroups).map(parentName => ({
+        parentName: parentName,
+        contactInfo: familyGroups[parentName].contactInfo,
+        childrenCount: familyGroups[parentName].children.length,
+        genderMix: `${familyGroups[parentName].boys} Boys, ${familyGroups[parentName].girls} Girls`
+    })).sort((a, b) => b.childrenCount - a.childrenCount); // Sort by children count descending
+
 
     // Update Summary Cards
     document.getElementById('totalStudents').textContent = totalStudentsCount;
@@ -385,6 +423,30 @@ function renderDashboard(studentsData) {
     });
     document.getElementById('regularIrregularInsight').textContent = `There are ${regularStudentsCount} regular students and ${irregularStudentsCount} irregular students.`;
 
+    // Populate Top Parents Section
+    const topParentsContainer = document.getElementById('topParentsContainer');
+    topParentsContainer.innerHTML = ''; // Clear previous data
+    if (familyGroupingsData.length > 0) {
+        familyGroupingsData.slice(0, 6).forEach(parent => { // Show top 6 parents
+            const parentCard = document.createElement('div');
+            parentCard.className = 'bg-indigo-50 rounded-lg p-4 flex items-center';
+            parentCard.innerHTML = `
+                <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-user-tie text-indigo-600"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800">${parent.parentName}</h3>
+                    <p class="text-sm text-gray-600">${parent.childrenCount} children enrolled</p>
+                </div>
+            `;
+            topParentsContainer.appendChild(parentCard);
+        });
+        document.getElementById('topParentsInsight').textContent = `Several families have multiple children enrolled, indicating strong family engagement with the institution. The top parent has ${familyGroupingsData[0].childrenCount} children in the program.`;
+    } else {
+        topParentsContainer.innerHTML = `<div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 col-span-full">No top parent data available.</div>`;
+        document.getElementById('topParentsInsight').textContent = `No top parent data found. Please ensure 'PARENTS NAME' column is present in your CSV and contains valid data.`;
+    }
+
 
     // Update Key Insights
     document.getElementById('insightGender').textContent = `The institution has ${genderDistribution.BOYS} male and ${genderDistribution.GIRLS} female students.`;
@@ -509,10 +571,6 @@ async function authenticateAndLoad() {
             }
         }
     });
-
-    // This initial call ensures the onAuthStateChanged listener is set up immediately.
-    // The listener itself will handle subsequent sign-in attempts.
-    // No direct signIn calls here, as onAuthStateChanged handles the initial state.
 }
 
 // Event listener for file input change
