@@ -109,12 +109,14 @@
 </head>
 <body class="bg-gray-50 font-sans">
     <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
         <header class="text-center mb-12 fade-in">
             <h1 class="text-5xl font-extrabold text-gray-900 mb-4">IQRA Academy of Michigan Student Data Insights</h1>
             <p class="text-xl text-gray-600">Visualizing key student demographics and academic performance metrics.</p>
             <div class="w-24 h-1 bg-indigo-500 mx-auto mt-4 rounded-full"></div>
         </header>
 
+        <!-- User Information and Loading/Message Area -->
         <section class="bg-white p-4 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0 md:space-x-4 fade-in no-print">
             <div class="text-sm text-gray-600">
                 Your User ID: <span id="userIdDisplay" class="font-bold text-gray-800">Loading...</span>
@@ -125,7 +127,8 @@
             </div>
         </section>
 
-        <section class="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 fade-in no-print">
+        <!-- File Upload Section (Visibility controlled by JavaScript) -->
+        <section id="uploadSection" class="bg-white p-6 rounded-xl shadow-lg mb-8 flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4 fade-in no-print hidden">
             <label for="csvFileInput" class="block text-gray-700 font-semibold">Upload Student Data (CSV):</label>
             <input type="file" id="csvFileInput" accept=".csv" class="block w-full md:w-auto text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
@@ -138,6 +141,7 @@
             </button>
         </section>
 
+        <!-- Summary Cards (Dynamically Populated) -->
         <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 fade-in">
             <div class="bg-white rounded-xl shadow-md p-6 transition-all duration-300 card-hover">
                 <div class="flex items-center">
@@ -341,6 +345,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         let currentUserId = null; // To store the authenticated user ID
+        let dataOwnerId = null; // To store the ID of the user who can upload data (from __initial_auth_token)
 
         // Use a consistent app ID for the Firestore path on GitHub Pages.
         // This should be a unique string for your public dashboard.
@@ -350,9 +355,9 @@
         // DOM Elements for messages and loading
         const appMessageDiv = document.getElementById('appMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
+        const uploadSection = document.getElementById('uploadSection'); // Get the upload section element
 
         // Initial sample data for immediate display if no data is in Firestore or uploaded yet.
-        // This addresses the "Missing expected headers" error on initial load.
         let currentRawData = `LEVEL,TEACHER,GENDER,NAME,PARENTS NAME,CONTACT INFO,RN,Department
 2,MD Abdur Rashid,BOYS,Mohammed I. Khan,M. HERON KHAN,313 455 1008,1,WEEKEND
 2,MD Abdur Rashid,BOYS,Nazmul Shaheen,KAMRUL SHAHEEN,586 303 6606,2,WEEKEND
@@ -373,6 +378,45 @@
 `;
 
         let studentsData = []; // Global variable to hold parsed student data
+
+        /**
+         * Displays a message to the user.
+         * @param {string} message - The message to display.
+         * @param {string} type - The type of message (e.g., 'green', 'red', 'orange').
+         */
+        function displayMessage(message, type = 'gray') {
+            appMessageDiv.textContent = message;
+            appMessageDiv.className = `text-sm mt-2 md:mt-0 text-${type}-600`;
+        }
+
+        /**
+         * Shows or hides the loading indicator.
+         * @param {boolean} show - True to show, false to hide.
+         */
+        function showLoading(show) {
+            if (show) {
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Updates the visibility and enabled state of the upload controls.
+         */
+        function updateUploadControls() {
+            if (uploadSection) { // Ensure the upload section exists
+                if (currentUserId && dataOwnerId && currentUserId === dataOwnerId) {
+                    // Current user is the owner, show the upload section
+                    uploadSection.classList.remove('hidden');
+                    displayMessage('You are signed in as the data owner. You can upload new data.', 'green');
+                } else {
+                    // Current user is not the owner, hide the upload section
+                    uploadSection.classList.add('hidden');
+                    displayMessage('You are viewing the dashboard. Only the owner can upload files.', 'gray');
+                }
+            }
+        }
 
         /**
          * Parses CSV student data to extract relevant fields.
@@ -744,15 +788,22 @@
             displayMessage('Authenticating...', 'gray');
             try {
                 // __initial_auth_token is specific to the Canvas environment.
-                // On GitHub Pages, we'll rely on anonymous sign-in.
+                // It identifies the user who originally created/owns this Canvas.
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
+                    dataOwnerId = auth.currentUser.uid; // This user is designated as the owner
                 } else {
+                    // For public viewers or when __initial_auth_token is not available (e.g., GitHub Pages)
                     await signInAnonymously(auth);
+                    // dataOwnerId remains null, meaning this user is not the owner and cannot upload
                 }
                 currentUserId = auth.currentUser?.uid || crypto.randomUUID();
                 document.getElementById('userIdDisplay').textContent = currentUserId;
                 console.log("Authenticated as:", currentUserId);
+                console.log("Data Owner ID (if applicable):", dataOwnerId);
+
+                updateUploadControls(); // Update upload controls based on authentication status
+
                 setupFirestoreListener(); // Setup listener after auth
             } catch (error) {
                 console.error("Firebase authentication failed:", error);
@@ -765,6 +816,12 @@
         document.getElementById('loadCsvButton').addEventListener('click', () => {
             const fileInput = document.getElementById('csvFileInput');
             const file = fileInput.files[0];
+
+            // Ensure only the owner can trigger this action
+            if (!(currentUserId && dataOwnerId && currentUserId === dataOwnerId)) {
+                displayMessage('You do not have permission to upload files.', 'red');
+                return;
+            }
 
             if (file) {
                 if (file.type !== 'text/csv') {
