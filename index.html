@@ -199,7 +199,7 @@
             </div>
         </section>
 
-        <section class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             <div class="bg-white rounded-xl shadow-md p-6 fade-in">
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-venus-mars text-indigo-500 mr-2"></i>
@@ -210,19 +210,6 @@
                 </div>
                 <div class="mt-4 text-sm text-gray-600">
                     <p id="genderInsight">Loading insights...</p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-md p-6 fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-calendar-week text-blue-500 mr-2"></i>
-                    Program Distribution
-                </h2>
-                <div class="h-64">
-                    <canvas id="programChart"></canvas>
-                </div>
-                <div class="mt-4 text-sm text-gray-600">
-                    <p id="programInsight">Loading insights...</p>
                 </div>
             </div>
 
@@ -263,6 +250,19 @@
                 <div class="mt-4 text-sm text-gray-600">
                     <p id="regularIrregularInsight">Loading insights...</p>
                 </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-md p-6 mb-12 fade-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-user-friends text-red-500 mr-2"></i>
+                Top Parents by Number of Children Enrolled
+            </h2>
+            <div id="topParentsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 col-span-full">No top parent data available.</div>
+            </div>
+            <div class="mt-4 text-sm text-gray-600">
+                <p id="topParentsInsight">Loading insights...</p>
             </div>
         </section>
 
