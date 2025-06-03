@@ -409,15 +409,20 @@
          * Updates the visibility and enabled state of the upload controls.
          */
         function updateUploadControls() {
+            console.log("updateUploadControls called.");
+            console.log("currentUserId:", currentUserId);
+            console.log("dataOwnerId:", dataOwnerId);
             if (uploadSection) { // Ensure the upload section exists
                 if (currentUserId && dataOwnerId && currentUserId === dataOwnerId) {
                     // Current user is the owner, show the upload section
                     uploadSection.classList.remove('hidden');
                     displayMessage('You are signed in as the data owner. You can upload new data.', 'green');
+                    console.log("Upload section is visible (owner).");
                 } else {
                     // Current user is not the owner, hide the upload section
                     uploadSection.classList.add('hidden');
                     displayMessage('You are viewing the dashboard. Only the owner can upload files.', 'gray');
+                    console.log("Upload section is hidden (not owner).");
                 }
             }
         }
@@ -478,10 +483,11 @@
                 // Trim all values after parsing
                 const trimmedValues = values.map(value => value.trim());
 
-                console.log(`Line ${i}: Processed values:`, trimmedValues);
+                console.log(`Line ${i}: Raw values:`, values); // Log raw values before trimming
+                console.log(`Line ${i}: Trimmed values:`, trimmedValues);
 
                 if (trimmedValues.length !== headers.length) {
-                    console.warn(`Skipping malformed line (column count mismatch): ${line}. Expected ${headers.length}, got ${trimmedValues.length}.`);
+                    console.warn(`Skipping malformed line (column count mismatch): "${line}". Expected ${headers.length}, got ${trimmedValues.length}.`);
                     continue;
                 }
 
@@ -533,6 +539,7 @@
          * @param {Array<Object>} studentsData - The array of parsed student objects.
          */
         function renderDashboard(studentsData) {
+            console.log("renderDashboard called with", studentsData.length, "students.");
             // Calculate summary metrics
             const totalStudentsCount = studentsData.length;
             let maleStudentsCount = 0;
@@ -611,6 +618,7 @@
                 genderMix: `${familyGroups[parentName].boys} Boys, ${familyGroups[parentName].girls} Girls`
             })).sort((a, b) => b.childrenCount - a.childrenCount); // Sort by children count descending
 
+            console.log("Family Groupings Data:", familyGroupingsData);
 
             // Update Summary Cards
             document.getElementById('totalStudents').textContent = totalStudentsCount;
@@ -625,10 +633,11 @@
             const regularIrregularData = [regularStudentsCount, irregularStudentsCount];
 
             // Helper function to create chart options with datalabels
-            function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}) {
+            function getChartOptions(titleText, pluginsOptions = {}, scalesOptions = {}, chartSpecificOptions = {}) {
                 return {
                     responsive: true,
                     maintainAspectRatio: false,
+                    ...chartSpecificOptions, // Spread chart-specific options here
                     plugins: {
                         legend: {
                             position: 'bottom'
@@ -675,7 +684,7 @@
                         borderWidth: 0
                     }]
                 },
-                options: getChartOptions('Gender Distribution', {}, { cutout: '70%' })
+                options: getChartOptions('Gender Distribution', {}, {}, { cutout: '70%' }) // Pass cutout here
             });
             document.getElementById('genderInsight').textContent = `The data shows a gender distribution with ${genderDistribution.BOYS} male and ${genderDistribution.GIRLS} female students.`;
 
@@ -694,7 +703,7 @@
                         borderWidth: 0
                     }]
                 },
-                options: getChartOptions('Department Distribution', {}, { cutout: '70%' }) // Added cutout for doughnut
+                options: getChartOptions('Department Distribution', {}, {}, { cutout: '70%' }) // Pass cutout here
             });
             const totalDepartmentStudents = departmentData.reduce((sum, count) => sum + count, 0);
             const weekendPercentage = totalDepartmentStudents > 0 ? ((departmentDistribution['WEEKEND'] || 0) / totalDepartmentStudents * 100).toFixed(1) : '0';
@@ -752,7 +761,7 @@
                         hoverOffset: 4
                     }]
                 },
-                options: getChartOptions('Regular vs. Irregular Students', {}, { cutout: '70%' })
+                options: getChartOptions('Regular vs. Irregular Students', {}, {}, { cutout: '70%' }) // Pass cutout here
             });
             document.getElementById('regularIrregularInsight').textContent = `There are ${regularStudentsCount} regular students and ${irregularStudentsCount} irregular students.`;
 
@@ -801,8 +810,9 @@
             try {
                 await setDoc(studentDataDocRef, { csvData: data, timestamp: new Date().toISOString() });
                 displayMessage('Data saved successfully!', 'green');
+                console.log("Data saved to Firestore.");
             } catch (error) {
-                console.error("Error writing document:", error);
+                console.error("Error writing document to Firestore:", error);
                 displayMessage('Error saving data. Please try again.', 'red');
             } finally {
                 showLoading(false);
@@ -814,36 +824,51 @@
          * This function is called after successful authentication.
          */
         function setupFirestoreListener() {
+            console.log("setupFirestoreListener called.");
             showLoading(true);
             displayMessage('Fetching latest data...', 'gray');
             onSnapshot(studentDataDocRef, (docSnap) => {
                 showLoading(false);
+                console.log("onSnapshot callback triggered.");
+                console.log("docSnap exists:", docSnap.exists());
+
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    console.log("Firestore document data:", data);
                     if (data && data.csvData) {
                         currentRawData = data.csvData;
+                        console.log("CSV data found in Firestore. Length:", currentRawData.length);
                         studentsData = parseStudentData(currentRawData);
                         if (studentsData.length > 0) {
                             renderDashboard(studentsData); // Render the full dashboard
                             displayMessage('Data updated in real-time!', 'green');
+                            console.log("Dashboard rendered with fetched data.");
                         } else {
                             displayMessage('No valid student data found in the cloud document. Please upload a valid CSV.', 'red');
                             renderDashboard([]); // Render empty dashboard if no valid data
+                            console.warn("No valid student data after parsing Firestore data.");
                         }
                     } else {
                         // Document exists but has no csvData, possibly a new document
                         displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
                         renderDashboard([]); // Render empty dashboard if no CSV data is found
+                        console.warn("Firestore document exists but no 'csvData' field found.");
                     }
                 } else {
                     // Document does not exist, it's the first time
                     displayMessage('No student data found in the cloud. Upload a CSV to get started!', 'orange');
                     renderDashboard([]); // Render empty dashboard if document doesn't exist
+                    console.warn("Firestore document does not exist.");
                 }
             }, (error) => {
                 showLoading(false);
-                console.error("Error listening to document:", error);
-                displayMessage('Error fetching real-time updates. Check console for details (e.g., Firebase security rules).', 'red');
+                console.error("Error listening to Firestore document:", error);
+                // Check if the error is a permission denied error
+                if (error.code === 'permission-denied') {
+                    displayMessage('Permission denied to access data. Check Firebase Security Rules.', 'red');
+                } else {
+                    displayMessage('Error fetching real-time updates. Check console for details.', 'red');
+                }
             });
         }
 
@@ -851,24 +876,26 @@
          * Handles Firebase authentication and then sets up the Firestore listener.
          */
         async function authenticateAndLoad() {
+            console.log("authenticateAndLoad called.");
             showLoading(true);
             displayMessage('Authenticating...', 'gray');
 
             // This listener is the primary way to react to authentication state changes.
             // It will fire immediately on page load with the current user state (can be null).
             onAuthStateChanged(auth, async (user) => {
+                console.log("onAuthStateChanged callback triggered. User:", user);
                 if (user) {
                     // User is authenticated
                     currentUserId = user.uid;
                     userIdDisplay.textContent = currentUserId; // Update the display immediately
-                    console.log("Authenticated as:", currentUserId);
+                    console.log("Authenticated as User ID:", currentUserId);
 
                     // Determine if this session is the 'owner' session.
                     // __initial_auth_token is a unique variable provided by the Canvas environment
                     // only to the owner's instance.
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         dataOwnerId = user.uid; // If token exists, this user is the owner.
-                        console.log("Data Owner ID set to current user's UID (Canvas owner session).");
+                        console.log("Data Owner ID set to current user's UID (Canvas owner session). __initial_auth_token was present.");
                     } else {
                         dataOwnerId = null; // Not the Canvas owner's session.
                         console.log("Not identified as Canvas owner (no __initial_auth_token).");
@@ -886,7 +913,7 @@
                     try {
                         // If the __initial_auth_token is available, try to sign in with it (owner).
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            console.log("Attempting signInWithCustomToken...");
+                            console.log("Attempting signInWithCustomToken with __initial_auth_token...");
                             await signInWithCustomToken(auth, __initial_auth_token);
                             // onAuthStateChanged will fire again with the owner user.
                         } else {
@@ -909,17 +936,20 @@
         // Event listener for file input change
         if (loadCsvButton) { // Ensure button exists before adding listener
             loadCsvButton.addEventListener('click', () => {
+                console.log("Load CSV button clicked.");
                 const file = csvFileInput ? csvFileInput.files[0] : null;
 
                 // Ensure only the owner can trigger this action
                 if (!(currentUserId && dataOwnerId && currentUserId === dataOwnerId)) {
                     displayMessage('You do not have permission to upload files.', 'red');
+                    console.warn("Upload blocked: User is not data owner.");
                     return;
                 }
 
                 if (file) {
                     if (file.type !== 'text/csv') {
                         displayMessage('Please upload a CSV file.', 'red');
+                        console.error("Invalid file type uploaded:", file.type);
                         return;
                     }
 
@@ -930,16 +960,19 @@
                     reader.onload = async (e) => {
                         try {
                             const newRawData = e.target.result;
+                            console.log("File read successfully. Raw data length:", newRawData.length);
                             const parsedStudents = parseStudentData(newRawData);
                             if (parsedStudents.length > 0) {
+                                console.log("CSV parsed successfully. Number of students:", parsedStudents.length);
                                 // Save the new data to Firestore
                                 await saveDataToFirestore(newRawData);
                                 // The onSnapshot listener will then trigger renderDashboard with the new data
                             } else {
                                 displayMessage('No valid student data found in the CSV. Not saving to cloud.', 'red');
+                                console.warn("No valid students parsed from uploaded CSV.");
                             }
                         } catch (error) {
-                            console.error("Error processing CSV:", error);
+                            console.error("Error processing uploaded CSV:", error);
                             displayMessage('Error processing file. Please check console for details.', 'red');
                         } finally {
                             showLoading(false);
@@ -948,10 +981,12 @@
                     reader.onerror = () => {
                         displayMessage('Error reading file.', 'red');
                         showLoading(false);
+                        console.error("FileReader error.");
                     };
                     reader.readAsText(file);
                 } else {
                     displayMessage('Please select a CSV file to upload.', 'red');
+                    console.warn("No file selected for upload.");
                 }
             });
         }
@@ -959,6 +994,7 @@
 
         // Initial render of the dashboard with sample data, then authenticate and load from Firestore
         // This ensures the dashboard has some data to display immediately.
+        console.log("Initial script execution: Parsing sample data and rendering dashboard.");
         studentsData = parseStudentData(currentRawData);
         renderDashboard(studentsData);
         authenticateAndLoad();
